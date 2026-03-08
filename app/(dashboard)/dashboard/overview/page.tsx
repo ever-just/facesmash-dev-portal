@@ -1,0 +1,215 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  KeyRound,
+  AppWindow,
+  BarChart3,
+  BookOpen,
+  ArrowRight,
+  Zap,
+  Code2,
+  ScanFace,
+} from 'lucide-react';
+import useSWR from 'swr';
+import { TeamDataWithMembers, User } from '@/lib/db/schema';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+export default function OverviewPage() {
+  const { data: user } = useSWR<User>('/api/user', fetcher);
+  const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
+
+  return (
+    <section className="flex-1 p-4 lg:p-8">
+      <div className="mb-8">
+        <h1 className="text-lg lg:text-2xl font-medium">
+          Welcome{user?.name ? `, ${user.name}` : ''}
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Build face authentication into your apps with the FaceSmash API.
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Link href="/dashboard/keys">
+          <Card className="hover:border-emerald-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-3">
+                <KeyRound className="h-5 w-5 text-emerald-600" />
+              </div>
+              <h3 className="font-medium">API Keys</h3>
+              <p className="text-sm text-gray-500 mt-1">Create & manage your keys</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/apps">
+          <Card className="hover:border-emerald-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center mb-3">
+                <AppWindow className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="font-medium">Applications</h3>
+              <p className="text-sm text-gray-500 mt-1">Configure your apps</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/usage">
+          <Card className="hover:border-emerald-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
+                <BarChart3 className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="font-medium">Usage</h3>
+              <p className="text-sm text-gray-500 mt-1">Monitor API analytics</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <a href="https://docs.facesmash.app" target="_blank" rel="noopener noreferrer">
+          <Card className="hover:border-emerald-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
+                <BookOpen className="h-5 w-5 text-amber-600" />
+              </div>
+              <h3 className="font-medium">Documentation</h3>
+              <p className="text-sm text-gray-500 mt-1">Guides & API reference</p>
+            </CardContent>
+          </Card>
+        </a>
+      </div>
+
+      {/* Docs Links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <a href="https://docs.facesmash.app/docs/quickstart" target="_blank" rel="noopener noreferrer">
+          <Card className="hover:border-amber-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
+                <Zap className="h-5 w-5 text-amber-600" />
+              </div>
+              <h3 className="font-medium">Quickstart Guide</h3>
+              <p className="text-sm text-gray-500 mt-1">Get face login working in 5 minutes</p>
+            </CardContent>
+          </Card>
+        </a>
+
+        <a href="https://docs.facesmash.app/docs/sdk" target="_blank" rel="noopener noreferrer">
+          <Card className="hover:border-purple-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
+                <Code2 className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="font-medium">SDK Reference</h3>
+              <p className="text-sm text-gray-500 mt-1">React components, hooks & vanilla JS</p>
+            </CardContent>
+          </Card>
+        </a>
+
+        <a href="https://docs.facesmash.app/docs/api-reference" target="_blank" rel="noopener noreferrer">
+          <Card className="hover:border-teal-300 transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-lg bg-teal-50 flex items-center justify-center mb-3">
+                <BookOpen className="h-5 w-5 text-teal-600" />
+              </div>
+              <h3 className="font-medium">API Reference</h3>
+              <p className="text-sm text-gray-500 mt-1">REST API endpoints & authentication</p>
+            </CardContent>
+          </Card>
+        </a>
+      </div>
+
+      {/* Getting Started */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-emerald-500" />
+            Quick Start
+          </CardTitle>
+          <CardDescription>Get face authentication working in 3 steps</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-4 p-4 rounded-lg border">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-emerald-700">
+              1
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium">Create an API key</h4>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Go to <Link href="/dashboard/keys" className="text-emerald-600 hover:underline">API Keys</Link> and generate your first key.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4 p-4 rounded-lg border">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-emerald-700">
+              2
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium">Install the SDK</h4>
+              <pre className="bg-gray-900 text-gray-100 rounded-lg px-4 py-3 text-sm mt-2 overflow-x-auto">
+                npm install @facesmash/sdk
+              </pre>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4 p-4 rounded-lg border">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-emerald-700">
+              3
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium">Make your first API call</h4>
+              <pre className="bg-gray-900 text-gray-100 rounded-lg px-4 py-3 text-sm mt-2 overflow-x-auto">
+{`import { FaceSmashClient } from '@facesmash/sdk';
+
+const client = new FaceSmashClient({
+  apiKey: 'fsk_your_key_here',
+});
+
+const result = await client.detect({ image: base64Image });
+console.log(result.detections);`}
+              </pre>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Plan Info */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ScanFace className="h-8 w-8 text-emerald-500" />
+              <div>
+                <p className="font-medium">
+                  {teamData?.planName || 'Free'} Plan
+                </p>
+                <p className="text-sm text-gray-500">
+                  {teamData?.subscriptionStatus === 'active'
+                    ? 'Active subscription'
+                    : '1,000 API calls/month included'}
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/billing">
+              <Button variant="outline" size="sm">
+                {teamData?.planName ? 'Manage Plan' : 'Upgrade'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, Settings, Shield, Activity, Menu } from 'lucide-react';
+import { LayoutDashboard, KeyRound, AppWindow, BarChart3, CreditCard, Settings, Shield, Activity, Menu } from 'lucide-react';
 
 export default function DashboardLayout({
   children
@@ -15,8 +15,12 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navItems = [
-    { href: '/dashboard', icon: Users, label: 'Team' },
-    { href: '/dashboard/general', icon: Settings, label: 'General' },
+    { href: '/dashboard/overview', icon: LayoutDashboard, label: 'Overview' },
+    { href: '/dashboard/apps', icon: AppWindow, label: 'Applications' },
+    { href: '/dashboard/keys', icon: KeyRound, label: 'API Keys' },
+    { href: '/dashboard/usage', icon: BarChart3, label: 'Usage' },
+    { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
+    { href: '/dashboard/general', icon: Settings, label: 'Settings' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
     { href: '/dashboard/security', icon: Shield, label: 'Security' }
   ];

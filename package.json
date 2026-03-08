@@ -15,6 +15,8 @@
     "@types/node": "^22.15.18",
     "@types/react": "19.1.4",
     "@types/react-dom": "19.1.5",
+    "@unkey/api": "^2.3.0",
+    "@unkey/ratelimit": "^2.1.4",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
@@ -30,6 +32,7 @@
     "radix-ui": "^1.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "recharts": "^3.8.0",
     "server-only": "^0.0.1",
     "stripe": "^18.1.0",
     "swr": "^2.3.3",
@@ -38,5 +41,8 @@
     "tw-animate-css": "^1.3.0",
     "typescript": "^5.8.3",
     "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.8"
   }
 }

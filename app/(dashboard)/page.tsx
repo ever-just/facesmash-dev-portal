@@ -1,95 +1,130 @@
+import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CreditCard, Database } from 'lucide-react';
-import { Terminal } from './terminal';
+import { ArrowRight, ScanFace, KeyRound, BarChart3, Code2, Shield, Zap, BookOpen, ExternalLink, Github, Package } from 'lucide-react';
 
 export default function HomePage() {
   return (
     <main>
+      {/* Hero */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-12 lg:gap-8">
             <div className="sm:text-center md:max-w-2xl md:mx-auto lg:col-span-6 lg:text-left">
               <h1 className="text-4xl font-bold text-gray-900 tracking-tight sm:text-5xl md:text-6xl">
-                Build Your SaaS
-                <span className="block text-orange-500">Faster Than Ever</span>
+                Face Authentication
+                <span className="block text-emerald-500">For Your Apps</span>
               </h1>
               <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                Launch your SaaS product in record time with our powerful,
-                ready-to-use template. Packed with modern technologies and
-                essential integrations.
+                Add face login, registration, and verification to any app
+                with a simple API call. No ML expertise required.
               </p>
-              <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
-                <a
-                  href="https://vercel.com/templates/next.js/next-js-saas-starter"
-                  target="_blank"
-                >
+              <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0 flex flex-wrap gap-3">
+                <Link href="/sign-up">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="text-lg rounded-full"
+                    className="text-lg rounded-full bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    Deploy your own
+                    Get API Key
                     <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <a href="https://docs.facesmash.app" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" variant="outline" className="text-lg rounded-full">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Read Docs
                   </Button>
                 </a>
               </div>
+              <div className="mt-4 flex items-center gap-2 sm:justify-center lg:justify-start">
+                <pre className="bg-gray-100 text-gray-600 rounded-lg px-4 py-2 text-sm font-mono">
+                  npm install @facesmash/sdk
+                </pre>
+              </div>
             </div>
             <div className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
-              <Terminal />
+              <div className="w-full bg-gray-900 rounded-xl p-6 shadow-2xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                  <span className="ml-2 text-gray-500 text-xs">api-example.ts</span>
+                </div>
+                <pre className="text-sm text-gray-300 font-mono leading-relaxed overflow-x-auto">
+{`import { FaceSmashClient } from '@facesmash/sdk';
+
+const facesmash = new FaceSmashClient({
+  apiKey: process.env.FACESMASH_API_KEY,
+});
+
+// Detect faces in an image
+const detection = await facesmash.detect({
+  image: base64Image,
+});
+
+// Register a user's face
+await facesmash.register({
+  userId: 'user_123',
+  descriptors: detection.descriptors,
+});
+
+// Authenticate with face
+const login = await facesmash.login({
+  descriptor: faceDescriptor,
+});
+// => { matched: true, userId: 'user_123' }`}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Features */}
       <section className="py-16 bg-white w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-3 lg:gap-8">
             <div>
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-orange-500 text-white">
-                <svg viewBox="0 0 24 24" className="h-6 w-6">
-                  <path
-                    fill="currentColor"
-                    d="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278zm-.005 1.09v.006c.225 0 .406.044.558.127.666.382.955 1.835.73 3.704-.054.46-.142.945-.25 1.44-.96-.236-2.006-.417-3.107-.534-.66-.905-1.345-1.727-2.035-2.447 1.592-1.48 3.087-2.292 4.105-2.295zm-9.77.02c1.012 0 2.514.808 4.11 2.28-.686.72-1.37 1.537-2.02 2.442-1.107.117-2.154.298-3.113.538-.112-.49-.195-.964-.254-1.42-.23-1.868.054-3.32.714-3.707.19-.09.4-.127.563-.132zm4.882 3.05c.455.468.91.992 1.36 1.564-.44-.02-.89-.034-1.345-.034-.46 0-.915.01-1.36.034.44-.572.895-1.096 1.345-1.565zM12 8.1c.74 0 1.477.034 2.202.093.406.582.802 1.203 1.183 1.86.372.64.71 1.29 1.018 1.946-.308.655-.646 1.31-1.013 1.95-.38.66-.773 1.288-1.18 1.87-.728.063-1.466.098-2.21.098-.74 0-1.477-.035-2.202-.093-.406-.582-.802-1.204-1.183-1.86-.372-.64-.71-1.29-1.018-1.946.303-.657.646-1.313 1.013-1.954.38-.66.773-1.286 1.18-1.868.728-.064 1.466-.098 2.21-.098zm-3.635.254c-.24.377-.48.763-.704 1.16-.225.39-.435.782-.635 1.174-.265-.656-.49-1.31-.676-1.947.64-.15 1.315-.283 2.015-.386zm7.26 0c.695.103 1.365.23 2.006.387-.18.632-.405 1.282-.66 1.933-.2-.39-.41-.783-.64-1.174-.225-.392-.465-.774-.705-1.146zm3.063.675c.484.15.944.317 1.375.498 1.732.74 2.852 1.708 2.852 2.476-.005.768-1.125 1.74-2.857 2.475-.42.18-.88.342-1.355.493-.28-.958-.646-1.956-1.1-2.98.45-1.017.81-2.01 1.085-2.964zm-13.395.004c.278.96.645 1.957 1.1 2.98-.45 1.017-.812 2.01-1.086 2.964-.484-.15-.944-.318-1.37-.5-1.732-.737-2.852-1.706-2.852-2.474 0-.768 1.12-1.742 2.852-2.476.42-.18.88-.342 1.356-.494zm11.678 4.28c.265.657.49 1.312.676 1.948-.64.157-1.316.29-2.016.39.24-.375.48-.762.705-1.158.225-.39.435-.788.636-1.18zm-9.945.02c.2.392.41.783.64 1.175.23.39.465.772.705 1.143-.695-.102-1.365-.23-2.006-.386.18-.63.406-1.282.66-1.933zM17.92 16.32c.112.493.2.968.254 1.423.23 1.868-.054 3.32-.714 3.708-.147.09-.338.128-.563.128-1.012 0-2.514-.807-4.11-2.28.686-.72 1.37-1.536 2.02-2.44 1.107-.118 2.154-.3 3.113-.54zm-11.83.01c.96.234 2.006.415 3.107.532.66.905 1.345 1.727 2.035 2.446-1.595 1.483-3.092 2.295-4.11 2.295-.22-.005-.406-.05-.553-.132-.666-.38-.955-1.834-.73-3.703.054-.46.142-.944.25-1.438zm4.56.64c.44.02.89.034 1.345.034.46 0 .915-.01 1.36-.034-.44.572-.895 1.095-1.345 1.565-.455-.47-.91-.993-1.36-1.565z"
-                  />
-                </svg>
+              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-emerald-500 text-white">
+                <ScanFace className="h-6 w-6" />
               </div>
               <div className="mt-5">
                 <h2 className="text-lg font-medium text-gray-900">
-                  Next.js and React
+                  Face Detection & Recognition
                 </h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Leverage the power of modern web technologies for optimal
-                  performance and developer experience.
+                  Detect faces, extract descriptors, and match identities
+                  with a single API call. Powered by state-of-the-art ML models.
                 </p>
               </div>
             </div>
 
             <div className="mt-10 lg:mt-0">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-orange-500 text-white">
-                <Database className="h-6 w-6" />
+              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-emerald-500 text-white">
+                <Shield className="h-6 w-6" />
               </div>
               <div className="mt-5">
                 <h2 className="text-lg font-medium text-gray-900">
-                  Postgres and Drizzle ORM
+                  Secure by Default
                 </h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Robust database solution with an intuitive ORM for efficient
-                  data management and scalability.
+                  API keys are one-way hashed. Rate limiting, audit logs, and
+                  IP whitelisting keep your integration safe.
                 </p>
               </div>
             </div>
 
             <div className="mt-10 lg:mt-0">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-orange-500 text-white">
-                <CreditCard className="h-6 w-6" />
+              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-emerald-500 text-white">
+                <Code2 className="h-6 w-6" />
               </div>
               <div className="mt-5">
                 <h2 className="text-lg font-medium text-gray-900">
-                  Stripe Integration
+                  SDK & REST API
                 </h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Seamless payment processing and subscription management with
-                  industry-leading Stripe integration.
+                  Use our TypeScript SDK with React hooks, or call the REST API
+                  directly from any language or framework.
                 </p>
               </div>
             </div>
@@ -97,34 +132,142 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Promo Video */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">See It in Action</h2>
+          <p className="text-gray-500 text-center mb-8">Watch how FaceSmash works — from registration to login</p>
+          <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-lg bg-black aspect-video">
+            <video
+              src="https://facesmash.app/landing-promo.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <p className="text-center text-gray-400 text-xs mt-3">
+            FaceSmash demo — passwordless login in under 2 seconds
+          </p>
+        </div>
+      </section>
+
+      {/* Ecosystem cross-links */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">The FaceSmash Ecosystem</h2>
+          <p className="text-gray-500 text-center mb-10 max-w-2xl mx-auto">
+            Everything you need to build, integrate, and ship face authentication.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <a href="https://facesmash.app" target="_blank" rel="noopener noreferrer" className="group block p-6 rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-4">
+                <Image src="/facesmash-logo.png" alt="FaceSmash" width={24} height={24} className="rounded" />
+              </div>
+              <h3 className="font-medium text-gray-900 mb-1">FaceSmash App</h3>
+              <p className="text-sm text-gray-500">End-user face login & registration. Try the live demo.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-emerald-600 mt-3 group-hover:gap-1.5 transition-all">
+                Visit app <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+
+            <a href="https://docs.facesmash.app" target="_blank" rel="noopener noreferrer" className="group block p-6 rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center mb-4">
+                <BookOpen className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="font-medium text-gray-900 mb-1">Documentation</h3>
+              <p className="text-sm text-gray-500">Guides, SDK reference, API docs, security architecture.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-purple-600 mt-3 group-hover:gap-1.5 transition-all">
+                Read docs <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+
+            <a href="https://www.npmjs.com/package/@facesmash/sdk" target="_blank" rel="noopener noreferrer" className="group block p-6 rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-lg bg-teal-50 flex items-center justify-center mb-4">
+                <Package className="h-5 w-5 text-teal-600" />
+              </div>
+              <h3 className="font-medium text-gray-900 mb-1">SDK on npm</h3>
+              <p className="text-sm text-gray-500">@facesmash/sdk — React components, hooks, vanilla JS client.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-teal-600 mt-3 group-hover:gap-1.5 transition-all">
+                View package <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+
+            <a href="https://github.com/ever-just/facesmash.app" target="_blank" rel="noopener noreferrer" className="group block p-6 rounded-xl border border-gray-200 hover:border-gray-400 hover:shadow-md transition-all">
+              <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center mb-4">
+                <Github className="h-5 w-5 text-gray-700" />
+              </div>
+              <h3 className="font-medium text-gray-900 mb-1">Open Source</h3>
+              <p className="text-sm text-gray-500">Fork it, extend it, self-host it. Full source code on GitHub.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-gray-600 mt-3 group-hover:gap-1.5 transition-all">
+                View source <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Ready to launch your SaaS?
+                Ready to add face auth?
               </h2>
               <p className="mt-3 max-w-3xl text-lg text-gray-500">
-                Our template provides everything you need to get your SaaS up
-                and running quickly. Don't waste time on boilerplate - focus on
-                what makes your product unique.
+                Get started with 1,000 free API calls per month. No credit card
+                required. Upgrade as you grow.
               </p>
             </div>
-            <div className="mt-8 lg:mt-0 flex justify-center lg:justify-end">
-              <a href="https://github.com/nextjs/saas-starter" target="_blank">
+            <div className="mt-8 lg:mt-0 flex flex-wrap justify-center lg:justify-end gap-3">
+              <Link href="/sign-up">
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="text-lg rounded-full"
+                  className="text-lg rounded-full bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  View the code
-                  <ArrowRight className="ml-3 h-6 w-6" />
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <a href="https://docs.facesmash.app/docs/quickstart" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" variant="outline" className="text-lg rounded-full">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Quickstart Guide
+                </Button>
+              </a>
+              <a href="https://docs.facesmash.app" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" variant="outline" className="text-lg rounded-full">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Full Docs
                 </Button>
               </a>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 py-8 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Image src="/facesmash-logo.png" alt="FaceSmash" width={20} height={20} className="rounded" />
+              <span className="text-sm text-gray-500">© 2026 EVERJUST COMPANY</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm text-gray-400">
+              <a href="https://facesmash.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">App</a>
+              <a href="https://docs.facesmash.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Docs</a>
+              <a href="https://facesmash.app/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Privacy</a>
+              <a href="https://facesmash.app/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Terms</a>
+              <a href="https://github.com/ever-just/facesmash.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">
+                <Github className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

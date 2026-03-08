@@ -68,10 +68,32 @@ export const invitations = pgTable('invitations', {
   status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
+export const developerApps = pgTable('developer_apps', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id')
+    .notNull()
+    .references(() => teams.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  allowedOrigins: text('allowed_origins'),
+  webhookUrl: text('webhook_url'),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const developerAppsRelations = relations(developerApps, ({ one }) => ({
+  team: one(teams, {
+    fields: [developerApps.teamId],
+    references: [teams.id],
+  }),
+}));
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
   invitations: many(invitations),
+  developerApps: many(developerApps),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -122,6 +144,8 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
+export type DeveloperApp = typeof developerApps.$inferSelect;
+export type NewDeveloperApp = typeof developerApps.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
@@ -139,4 +163,8 @@ export enum ActivityType {
   REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+  CREATE_APP = 'CREATE_APP',
+  DELETE_APP = 'DELETE_APP',
+  CREATE_API_KEY = 'CREATE_API_KEY',
+  REVOKE_API_KEY = 'REVOKE_API_KEY',
 }

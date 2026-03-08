@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { CircleIcon, Home, LogOut } from 'lucide-react';
+import { Home, LogOut, BookOpen, ExternalLink, Github } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,10 +83,41 @@ function Header() {
   return (
     <header className="border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center">
-          <CircleIcon className="h-6 w-6 text-orange-500" />
-          <span className="ml-2 text-xl font-semibold text-gray-900">ACME</span>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center">
+            <Image src="/facesmash-logo.png" alt="FaceSmash" width={28} height={28} className="rounded-lg" />
+            <span className="ml-2 text-xl font-semibold text-gray-900">FaceSmash</span>
+            <span className="ml-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Developers</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-1">
+            <a
+              href="https://docs.facesmash.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Docs
+            </a>
+            <a
+              href="https://facesmash.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              App
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <a
+              href="https://github.com/ever-just/facesmash.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-gray-700 px-2 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <Github className="h-4 w-4" />
+            </a>
+          </nav>
+        </div>
         <div className="flex items-center space-x-4">
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
