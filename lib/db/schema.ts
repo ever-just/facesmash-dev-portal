@@ -14,6 +14,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: varchar('role', { length: 20 }).notNull().default('member'),
+  accountType: varchar('account_type', { length: 20 }).notNull().default('personal'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -22,6 +23,9 @@ export const users = pgTable('users', {
 export const teams = pgTable('teams', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
+  companyName: varchar('company_name', { length: 200 }),
+  companyWebsite: varchar('company_website', { length: 500 }),
+  companySize: varchar('company_size', { length: 50 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   stripeCustomerId: text('stripe_customer_id').unique(),

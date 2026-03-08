@@ -103,11 +103,16 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 const signUpSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  name: z.string().min(1).max(100).optional(),
+  accountType: z.enum(['personal', 'company']).optional(),
+  companyName: z.string().max(200).optional(),
+  companyWebsite: z.string().max(500).optional(),
+  companySize: z.string().max(50).optional(),
   inviteId: z.string().optional()
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password, inviteId } = data;
+  const { email, password, name, accountType, companyName, companyWebsite, companySize, inviteId } = data;
 
   const existingUser = await db
     .select()
@@ -128,6 +133,8 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const newUser: NewUser = {
     email,
     passwordHash,
+    name: name || null,
+    accountType: accountType || 'personal',
     role: 'owner' // Default role, will be overridden if there's an invitation
   };
 
@@ -181,7 +188,10 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   } else {
     // Create a new team if there's no invitation
     const newTeam: NewTeam = {
-      name: `${email}'s Team`
+      name: accountType === 'company' && companyName ? companyName : (name ? `${name}'s Team` : `${email}'s Team`),
+      companyName: accountType === 'company' ? (companyName || null) : null,
+      companyWebsite: accountType === 'company' ? (companyWebsite || null) : null,
+      companySize: accountType === 'company' ? (companySize || null) : null,
     };
 
     [createdTeam] = await db.insert(teams).values(newTeam).returning();
