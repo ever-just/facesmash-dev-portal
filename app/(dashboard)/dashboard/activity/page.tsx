@@ -13,6 +13,7 @@ import {
   Trash2,
   KeyRound,
   KeySquare,
+  Shield,
   type LucideIcon,
 } from 'lucide-react';
 import { ActivityType } from '@/lib/db/schema';
@@ -33,6 +34,7 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.DELETE_APP]: Trash2,
   [ActivityType.CREATE_API_KEY]: KeyRound,
   [ActivityType.REVOKE_API_KEY]: KeySquare,
+  [ActivityType.UPDATE_USER_ROLE]: Shield,
 };
 
 function getRelativeTime(date: Date) {
@@ -71,6 +73,16 @@ function formatAction(action: ActivityType): string {
       return 'You invited a team member';
     case ActivityType.ACCEPT_INVITATION:
       return 'You accepted an invitation';
+    case ActivityType.CREATE_APP:
+      return 'You created an application';
+    case ActivityType.DELETE_APP:
+      return 'You deleted an application';
+    case ActivityType.CREATE_API_KEY:
+      return 'You created an API key';
+    case ActivityType.REVOKE_API_KEY:
+      return 'You revoked an API key';
+    case ActivityType.UPDATE_USER_ROLE:
+      return 'You updated a user role';
     default:
       return 'Unknown action occurred';
   }

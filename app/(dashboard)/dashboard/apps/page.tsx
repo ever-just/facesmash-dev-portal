@@ -11,10 +11,11 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { AppWindow, Plus, Globe, Webhook, Trash2, Loader2 } from 'lucide-react';
+import { AppWindow, Plus, Globe, Webhook, Trash2, Loader2, ChevronRight } from 'lucide-react';
 import { createApp, deleteApp } from '@/lib/apps/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import useSWR from 'swr';
+import Link from 'next/link';
 import type { DeveloperApp } from '@/lib/db/schema';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -142,46 +143,41 @@ export default function ApplicationsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {apps && apps.length > 0 ? (
           apps.map((app) => (
-            <Card key={app.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <AppWindow className="h-5 w-5 text-emerald-500" />
-                      {app.name}
-                    </CardTitle>
-                    {app.description && (
-                      <CardDescription className="mt-1">{app.description}</CardDescription>
-                    )}
+            <Link key={app.id} href={`/dashboard/apps/${app.id}`}>
+              <Card className="hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="flex items-center gap-2">
+                        <AppWindow className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                        <span className="truncate">{app.name}</span>
+                      </CardTitle>
+                      {app.description && (
+                        <CardDescription className="mt-1 truncate">{app.description}</CardDescription>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-1" />
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-red-500"
-                    onClick={() => handleDelete(app.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500 space-y-2">
-                {app.allowedOrigins && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{app.allowedOrigins}</span>
-                  </div>
-                )}
-                {app.webhookUrl && (
-                  <div className="flex items-center gap-2">
-                    <Webhook className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{app.webhookUrl}</span>
-                  </div>
-                )}
-                <p className="text-xs text-gray-400">
-                  Created {new Date(app.createdAt).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="text-sm text-gray-500 space-y-2">
+                  {app.allowedOrigins && (
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{app.allowedOrigins}</span>
+                    </div>
+                  )}
+                  {app.webhookUrl && (
+                    <div className="flex items-center gap-2">
+                      <Webhook className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{app.webhookUrl}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400">
+                    Created {new Date(app.createdAt).toLocaleDateString()}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           ))
         ) : null}
 

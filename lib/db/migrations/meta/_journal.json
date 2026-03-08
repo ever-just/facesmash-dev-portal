@@ -15,6 +15,13 @@
       "when": 1772953366068,
       "tag": "0001_melodic_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772977761698,
+      "tag": "0002_last_khan",
+      "breakpoints": true
     }
   ]
 }

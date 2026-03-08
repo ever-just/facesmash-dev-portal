@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, KeyRound, AppWindow, BarChart3, CreditCard, Settings, Shield, Activity, Menu } from 'lucide-react';
+import { LayoutDashboard, KeyRound, AppWindow, BarChart3, CreditCard, Settings, Shield, Activity, Menu, Users, UsersRound } from 'lucide-react';
 
 export default function DashboardLayout({
   children
@@ -17,8 +17,10 @@ export default function DashboardLayout({
   const navItems = [
     { href: '/dashboard/overview', icon: LayoutDashboard, label: 'Overview' },
     { href: '/dashboard/apps', icon: AppWindow, label: 'Applications' },
+    { href: '/dashboard/users', icon: Users, label: 'Users' },
     { href: '/dashboard/keys', icon: KeyRound, label: 'API Keys' },
     { href: '/dashboard/usage', icon: BarChart3, label: 'Usage' },
+    { href: '/dashboard/team', icon: UsersRound, label: 'Team' },
     { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
     { href: '/dashboard/general', icon: Settings, label: 'Settings' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
@@ -55,9 +57,9 @@ export default function DashboardLayout({
             {navItems.map((item) => (
               <Link key={item.href} href={item.href} passHref>
                 <Button
-                  variant={pathname === item.href ? 'secondary' : 'ghost'}
+                  variant={pathname === item.href || pathname.startsWith(item.href + '/') ? 'secondary' : 'ghost'}
                   className={`shadow-none my-1 w-full justify-start ${
-                    pathname === item.href ? 'bg-gray-100' : ''
+                    pathname === item.href || pathname.startsWith(item.href + '/') ? 'bg-gray-100' : ''
                   }`}
                   onClick={() => setIsSidebarOpen(false)}
                 >

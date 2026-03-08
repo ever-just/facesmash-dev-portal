@@ -6,6 +6,7 @@ import { developerApps, ActivityType, activityLogs } from '@/lib/db/schema';
 import { getUserWithTeam } from '@/lib/db/queries';
 import { validatedActionWithUser } from '@/lib/auth/middleware';
 import { eq, and, desc } from 'drizzle-orm';
+import { canCreateApp } from '@/lib/plans/limits';
 
 // ─── Create App ─────────────────────────────────────────────────
 const createAppSchema = z.object({
@@ -21,6 +22,14 @@ export const createApp = validatedActionWithUser(
     const userWithTeam = await getUserWithTeam(user.id);
     if (!userWithTeam?.teamId) {
       return { error: 'You must be part of a team to create applications.' };
+    }
+
+    // Enforce plan limits
+    const appLimit = await canCreateApp(userWithTeam.teamId);
+    if (!appLimit.allowed) {
+      return {
+        error: `You've reached the maximum of ${appLimit.max} app${appLimit.max === 1 ? '' : 's'} on the ${appLimit.tier} plan. Upgrade to create more.`,
+      };
     }
 
     const [app] = await db
@@ -55,7 +64,7 @@ export async function listApps(teamId: number) {
 
 // ─── Delete App ─────────────────────────────────────────────────
 const deleteAppSchema = z.object({
-  appId: z.number(),
+  appId: z.coerce.number(),
 });
 
 export const deleteApp = validatedActionWithUser(
@@ -98,7 +107,7 @@ export const deleteApp = validatedActionWithUser(
 
 // ─── Update App ─────────────────────────────────────────────────
 const updateAppSchema = z.object({
-  appId: z.number(),
+  appId: z.coerce.number(),
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
   allowedOrigins: z.string().max(1000).optional(),

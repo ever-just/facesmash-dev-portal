@@ -86,10 +86,29 @@ export const developerApps = pgTable('developer_apps', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const developerAppsRelations = relations(developerApps, ({ one }) => ({
+export const appUserRoles = pgTable('app_user_roles', {
+  id: serial('id').primaryKey(),
+  appId: integer('app_id')
+    .notNull()
+    .references(() => developerApps.id),
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('user'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const developerAppsRelations = relations(developerApps, ({ one, many }) => ({
   team: one(teams, {
     fields: [developerApps.teamId],
     references: [teams.id],
+  }),
+  userRoles: many(appUserRoles),
+}));
+
+export const appUserRolesRelations = relations(appUserRoles, ({ one }) => ({
+  app: one(developerApps, {
+    fields: [appUserRoles.appId],
+    references: [developerApps.id],
   }),
 }));
 
@@ -150,6 +169,8 @@ export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type DeveloperApp = typeof developerApps.$inferSelect;
 export type NewDeveloperApp = typeof developerApps.$inferInsert;
+export type AppUserRole = typeof appUserRoles.$inferSelect;
+export type NewAppUserRole = typeof appUserRoles.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
@@ -171,4 +192,5 @@ export enum ActivityType {
   DELETE_APP = 'DELETE_APP',
   CREATE_API_KEY = 'CREATE_API_KEY',
   REVOKE_API_KEY = 'REVOKE_API_KEY',
+  UPDATE_USER_ROLE = 'UPDATE_USER_ROLE',
 }

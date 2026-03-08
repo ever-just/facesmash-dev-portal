@@ -34,10 +34,10 @@ function UserMenu() {
     return (
       <>
         <Link
-          href="/pricing"
+          href="/sign-in"
           className="text-sm font-medium text-gray-700 hover:text-gray-900"
         >
-          Pricing
+          Sign In
         </Link>
         <Button asChild className="rounded-full">
           <Link href="/sign-up">Sign Up</Link>
@@ -133,6 +133,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <section className="flex flex-col min-h-screen">
       <Header />
       {children}
+      <footer className="border-t border-gray-100 py-3 px-4 text-center">
+        <span className="text-[10px] text-gray-300 font-mono">v1.4.0</span>
+      </footer>
     </section>
   );
 }

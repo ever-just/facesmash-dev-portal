@@ -23,8 +23,10 @@ import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
 import {
   validatedAction,
-  validatedActionWithUser
+  validatedActionWithUser,
+  validatedActionWithRole
 } from '@/lib/auth/middleware';
+import { canAddTeamMember } from '@/lib/plans/limits';
 
 async function logActivity(
   teamId: number | null | undefined,
@@ -369,11 +371,12 @@ export const updateAccount = validatedActionWithUser(
 );
 
 const removeTeamMemberSchema = z.object({
-  memberId: z.number()
+  memberId: z.coerce.number()
 });
 
-export const removeTeamMember = validatedActionWithUser(
+export const removeTeamMember = validatedActionWithRole(
   removeTeamMemberSchema,
+  'admin',
   async (data, _, user) => {
     const { memberId } = data;
     const userWithTeam = await getUserWithTeam(user.id);
@@ -382,14 +385,33 @@ export const removeTeamMember = validatedActionWithUser(
       return { error: 'User is not part of a team' };
     }
 
-    await db
-      .delete(teamMembers)
+    // Prevent removing yourself
+    const [targetMember] = await db
+      .select()
+      .from(teamMembers)
       .where(
         and(
           eq(teamMembers.id, memberId),
           eq(teamMembers.teamId, userWithTeam.teamId)
         )
-      );
+      )
+      .limit(1);
+
+    if (!targetMember) {
+      return { error: 'Team member not found' };
+    }
+
+    if (targetMember.userId === user.id) {
+      return { error: 'You cannot remove yourself from the team' };
+    }
+
+    if (targetMember.role === 'owner') {
+      return { error: 'Cannot remove the team owner' };
+    }
+
+    await db
+      .delete(teamMembers)
+      .where(eq(teamMembers.id, memberId));
 
     await logActivity(
       userWithTeam.teamId,
@@ -403,17 +425,31 @@ export const removeTeamMember = validatedActionWithUser(
 
 const inviteTeamMemberSchema = z.object({
   email: z.string().email('Invalid email address'),
-  role: z.enum(['member', 'owner'])
+  role: z.enum(['member', 'admin', 'owner'])
 });
 
-export const inviteTeamMember = validatedActionWithUser(
+export const inviteTeamMember = validatedActionWithRole(
   inviteTeamMemberSchema,
-  async (data, _, user) => {
+  'admin',
+  async (data, _, user, teamRole) => {
     const { email, role } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
+    // Only owners can invite admins or owners
+    if ((role === 'admin' || role === 'owner') && teamRole !== 'owner') {
+      return { error: 'Only the team owner can invite admins or owners.' };
+    }
+
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
+    }
+
+    // Enforce plan limits
+    const memberLimit = await canAddTeamMember(userWithTeam.teamId);
+    if (!memberLimit.allowed) {
+      return {
+        error: `You've reached the maximum of ${memberLimit.max} team member${memberLimit.max === 1 ? '' : 's'} on the ${memberLimit.tier} plan. Upgrade to invite more.`,
+      };
     }
 
     const existingMember = await db

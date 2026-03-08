@@ -4,6 +4,7 @@ import { z } from "zod";
 import { unkey, UNKEY_API_ID, type UnkeyKeyMeta } from "@/lib/unkey";
 import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { getUserWithTeam } from "@/lib/db/queries";
+import { canCreateApiKey } from "@/lib/plans/limits";
 
 // ─── Create API Key ──────────────────────────────────────────────
 const createKeySchema = z.object({
@@ -18,6 +19,14 @@ export const createApiKey = validatedActionWithUser(
     const userWithTeam = await getUserWithTeam(user.id);
     if (!userWithTeam?.teamId) {
       return { error: "You must be part of a team to create API keys." };
+    }
+
+    // Enforce plan limits
+    const keyLimit = await canCreateApiKey(userWithTeam.teamId);
+    if (!keyLimit.allowed) {
+      return {
+        error: `You've reached the maximum of ${keyLimit.max} API key${keyLimit.max === 1 ? '' : 's'} on the ${keyLimit.tier} plan. Upgrade to create more.`,
+      };
     }
 
     const expires = data.expiresInDays

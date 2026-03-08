@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@facesmash/sdk':
+        specifier: file:../face-login-gateway/packages/sdk
+        version: file:../face-login-gateway/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@tailwindcss/postcss':
         specifier: 4.1.7
         version: 4.1.7
@@ -56,6 +59,9 @@ importers:
       next:
         specifier: 15.6.0-canary.59
         version: 15.6.0-canary.59(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      pocketbase:
+        specifier: ^0.26.8
+        version: 0.26.8
       postcss:
         specifier: ^8.5.3
         version: 8.5.3
@@ -408,6 +414,17 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@facesmash/sdk@file:../face-login-gateway/packages/sdk':
+    resolution: {directory: ../face-login-gateway/packages/sdk, type: directory}
+    peerDependencies:
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   '@floating-ui/core@1.7.0':
     resolution: {integrity: sha512-FRdBLykrPPA6P76GGGqlex/e7fbe0F1ykgxHYNXQsH/iTEtjMj/f9bpY5oQqbjt5VgZvgz/uKXbGuROijh3VLA==}
@@ -1489,6 +1506,10 @@ packages:
   '@unkey/ratelimit@2.1.4':
     resolution: {integrity: sha512-2YNVUChD0JBZe+dxi5FTLBBSZrAeg3uvqiJ3kHrwlsty5EITYIhjKujhFu/MJW2JmDm6j9yvtYcAZ+cxQ1hiqg==}
 
+  '@vladmandic/face-api@1.7.15':
+    resolution: {integrity: sha512-WDMmK3CfNLo8jylWqMoQgf4nIst3M0fzx1dnac96wv/dvMTN4DxC/Pq1DGtduDk1lktCamQ3MIDXFnvrdHTXDw==}
+    engines: {node: '>=14.0.0'}
+
   aria-hidden@1.2.4:
     resolution: {integrity: sha512-y+CcFFwelSXpLZk/7fMB2mUbGtX9lKycf1MWJ7CaTIERyitVlyQx6C+sxcROU2BAJ24OiZyK+8wj2i8AlBoS3A==}
     engines: {node: '>=10'}
@@ -1954,6 +1975,9 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
+  pocketbase@0.26.8:
+    resolution: {integrity: sha512-aQ/ewvS7ncvAE8wxoW10iAZu6ElgbeFpBhKPnCfvRovNzm2gW8u/sQNPGN6vNgVEagz44kK//C61oKjfa+7Low==}
+
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
@@ -2381,6 +2405,14 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.4':
     optional: true
+
+  '@facesmash/sdk@file:../face-login-gateway/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@vladmandic/face-api': 1.7.15
+      pocketbase: 0.26.8
+    optionalDependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   '@floating-ui/core@1.7.0':
     dependencies:
@@ -3437,6 +3469,8 @@ snapshots:
     dependencies:
       '@unkey/api': 2.2.0
 
+  '@vladmandic/face-api@1.7.15': {}
+
   aria-hidden@1.2.4:
     dependencies:
       tslib: 2.8.1
@@ -3805,6 +3839,8 @@ snapshots:
   object-inspect@1.13.4: {}
 
   picocolors@1.1.1: {}
+
+  pocketbase@0.26.8: {}
 
   postcss-value-parser@4.2.0: {}
 

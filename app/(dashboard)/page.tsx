@@ -255,7 +255,7 @@ const login = await facesmash.login({
             <div className="flex items-center gap-2">
               <Image src="/facesmash-logo.png" alt="FaceSmash" width={20} height={20} className="rounded" />
               <span className="text-sm text-gray-500">© 2026 EVERJUST COMPANY</span>
-              <span className="text-[10px] text-gray-300 font-mono ml-2">v1.1.0</span>
+              <span className="text-[10px] text-gray-300 font-mono ml-2">v1.2.0</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-400">
               <a href="https://facesmash.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">App</a>

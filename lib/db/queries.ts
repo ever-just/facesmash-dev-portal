@@ -99,6 +99,19 @@ export async function getActivityLogs() {
     .limit(10);
 }
 
+export async function getUserTeamRole(userId: number) {
+  const result = await db
+    .select({
+      role: teamMembers.role,
+      teamId: teamMembers.teamId,
+    })
+    .from(teamMembers)
+    .where(eq(teamMembers.userId, userId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
 export async function getTeamForUser() {
   const user = await getUser();
   if (!user) {
