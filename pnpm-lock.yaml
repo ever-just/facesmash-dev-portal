@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@facesmash/sdk':
-        specifier: file:../face-login-gateway/packages/sdk
-        version: file:../face-login-gateway/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: file:../facesmash.app/packages/sdk
+        version: file:../facesmash.app/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@tailwindcss/postcss':
         specifier: 4.1.7
         version: 4.1.7
@@ -415,8 +415,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@facesmash/sdk@file:../face-login-gateway/packages/sdk':
-    resolution: {directory: ../face-login-gateway/packages/sdk, type: directory}
+  '@facesmash/sdk@file:../facesmash.app/packages/sdk':
+    resolution: {directory: ../facesmash.app/packages/sdk, type: directory}
     peerDependencies:
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
@@ -2406,7 +2406,7 @@ snapshots:
   '@esbuild/win32-x64@0.25.4':
     optional: true
 
-  '@facesmash/sdk@file:../face-login-gateway/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@facesmash/sdk@file:../facesmash.app/packages/sdk(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@vladmandic/face-api': 1.7.15
       pocketbase: 0.26.8
