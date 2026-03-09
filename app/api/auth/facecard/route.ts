@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPocketBaseAdmin } from '@/lib/pocketbase/client';
+import { matchFace } from '@/lib/facesmash-api/client';
 import { db } from '@/lib/db/drizzle';
 import { users, activityLogs, teamMembers, ActivityType } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { signToken } from '@/lib/auth/session';
 import { cookies } from 'next/headers';
-
-// Simple euclidean distance calculation for face matching
-function calculateSimilarity(desc1: Float32Array, desc2: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < desc1.length; i++) {
-    const diff = desc1[i] - desc2[i];
-    sum += diff * diff;
-  }
-  const distance = Math.sqrt(sum);
-  return 1 - distance; // Convert distance to similarity (higher = more similar)
-}
 
 const APP_ID = process.env.DEVPORTAL_APP_ID || 'devportal';
 
@@ -33,7 +22,6 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
     if (elapsed < BACKOFF_MS) {
       return { allowed: false, retryAfter: Math.ceil((BACKOFF_MS - elapsed) / 1000) };
     }
-    // Reset after backoff period
     failedAttempts.delete(ip);
     return { allowed: true };
   }
@@ -62,10 +50,9 @@ function clearFailures(ip: string) {
  *
  * Flow:
  * 1. Client sends face descriptor from SDK analysis
- * 2. Server fetches all profiles from PocketBase for this app
- * 3. Server matches descriptor against all profiles
- * 4. If match found → looks up user by email and creates session
- * 5. If not found → returns error
+ * 2. Server calls Hono API for pgvector face matching (scoped to app_id)
+ * 3. If match found -> looks up user by email and creates session
+ * 4. If not found -> returns error
  */
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -94,46 +81,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Step 1: Fetch all profiles for this app from PocketBase
-    const pb = await getPocketBaseAdmin();
-    const profiles = await pb.collection('user_profiles').getFullList({
-      filter: `app_id = "${APP_ID}" && email_verified = true`,
-    });
+    // Call Hono API for server-side pgvector face matching
+    const matchResult = await matchFace(descriptor, APP_ID);
 
-    if (profiles.length === 0) {
+    if (!matchResult.ok || !matchResult.data.match || !matchResult.data.user) {
       recordFailure(ip);
-      return NextResponse.json({ error: 'No FaceCard profiles found. Please register first.' }, { status: 404 });
-    }
-
-    // Step 2: Match descriptor against all profiles
-    let bestMatch: any = null;
-    let bestSimilarity = 0;
-    const inputDescriptor = new Float32Array(descriptor);
-    const MATCH_THRESHOLD = 0.6; // Similarity threshold (higher = stricter)
-
-    for (const profile of profiles) {
-      if (!profile.face_embedding || !Array.isArray(profile.face_embedding)) continue;
-      
-      const storedDescriptor = new Float32Array(profile.face_embedding);
-      const similarity = calculateSimilarity(inputDescriptor, storedDescriptor);
-      
-      if (similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        bestMatch = profile;
-      }
-    }
-
-    if (!bestMatch || bestSimilarity < MATCH_THRESHOLD) {
-      recordFailure(ip);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Face not recognized. Please try again or use password login.',
-        similarity: bestSimilarity 
+        similarity: matchResult.data.bestSimilarity || 0,
       }, { status: 401 });
     }
 
-    const email = bestMatch.email;
+    const email = matchResult.data.user.email;
 
-    // Step 3: Look up the user in the dev portal database
+    // Look up the user in the dev portal database
     const [devPortalUser] = await db
       .select()
       .from(users)
@@ -141,8 +102,6 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (!devPortalUser) {
-      // User exists in PocketBase (has FaceCard) but not in dev portal
-      // Clear failures — the face match was valid, just no account
       clearFailures(ip);
       return NextResponse.json({
         error: 'No developer account found for this email.',
@@ -152,7 +111,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Step 4: Create session
+    // Create session
     clearFailures(ip);
 
     const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -197,8 +156,9 @@ export async function POST(request: NextRequest) {
         email: devPortalUser.email,
       },
     });
-  } catch (err: any) {
-    console.error('FaceCard auth error:', err?.message || err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('FaceCard auth error:', message);
     recordFailure(ip);
     return NextResponse.json(
       { error: 'Authentication failed. Please try again.' },
