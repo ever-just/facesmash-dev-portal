@@ -15,6 +15,24 @@ export const viewport: Viewport = {
 
 const manrope = Manrope({ subsets: ['latin'] });
 
+async function safeGetUser() {
+  try {
+    return await getUser();
+  } catch (error) {
+    console.error('Failed to fetch user in layout:', error);
+    return null;
+  }
+}
+
+async function safeGetTeamForUser() {
+  try {
+    return await getTeamForUser();
+  } catch (error) {
+    console.error('Failed to fetch team in layout:', error);
+    return null;
+  }
+}
+
 export default function RootLayout({
   children
 }: {
@@ -31,8 +49,8 @@ export default function RootLayout({
             fallback: {
               // We do NOT await here
               // Only components that read this data will suspend
-              '/api/user': getUser(),
-              '/api/team': getTeamForUser()
+              '/api/user': safeGetUser(),
+              '/api/team': safeGetTeamForUser()
             }
           }}
         >
