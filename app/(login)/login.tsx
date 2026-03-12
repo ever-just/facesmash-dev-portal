@@ -12,13 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ScanFace, CheckCircle, AlertTriangle, X, User, Building2, ArrowRight, Globe, Users, ArrowLeft } from 'lucide-react';
 import { ActionState } from '@/lib/auth/middleware';
 
-// Dynamic import to avoid SSR issues
-let FaceSmashClient: any = null;
-if (typeof window !== 'undefined') {
-  import('@facesmash/sdk').then(module => {
-    FaceSmashClient = module.FaceSmashClient;
-  });
-}
+// Pinned model URL — must match the version in @vladmandic/face-api
+const FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 
 const COMPANY_SIZES = [
   { value: '1-5', label: '1–5' },
@@ -207,11 +202,13 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
     setScanPulse(0);
     authAttemptedRef.current = false;
     try {
-      // Initialize SDK
+      // Initialize SDK — dynamic import ensures models load only client-side
+      // and awaiting here prevents the race where FaceSmashClient was null
       if (!sdkRef.current) {
+        const { FaceSmashClient } = await import('@facesmash/sdk');
         sdkRef.current = new FaceSmashClient({
           apiUrl: 'https://api.facesmash.app',
-          appId: 'devportal',
+          modelUrl: FACE_API_MODEL_URL,
         });
         await sdkRef.current.init();
       }
