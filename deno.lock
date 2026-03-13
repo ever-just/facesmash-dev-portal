@@ -11,6 +11,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@facesmash/sdk@2",
         "npm:@netlify/plugin-nextjs@^5.15.8",
         "npm:@tailwindcss/postcss@4.1.7",
         "npm:@types/node@^22.15.18",
@@ -28,6 +29,7 @@
         "npm:jose@^6.0.11",
         "npm:lucide-react@0.511",
         "npm:next@15.6.0-canary.59",
+        "npm:pocketbase@~0.26.8",
         "npm:postcss@^8.5.3",
         "npm:postgres@^3.4.5",
         "npm:radix-ui@^1.4.2",
