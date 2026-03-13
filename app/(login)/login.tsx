@@ -15,6 +15,11 @@ import { ActionState } from '@/lib/auth/middleware';
 // Pinned model URL — must match the version in @vladmandic/face-api
 const FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 
+// Tracking constants
+const TRACKING_INTERVAL_MS = 200; // ~5 FPS
+const DESCRIPTOR_START_FRAME = 5;
+const DESCRIPTOR_EVERY_N_FRAMES = 3;
+
 const COMPANY_SIZES = [
   { value: '1-5', label: '1–5' },
   { value: '6-20', label: '6–20' },
@@ -57,6 +62,11 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const authAttemptedRef = useRef(false);
   const sdkRef = useRef<any>(null);
+  const sdkModuleRef = useRef<any>(null); // Holds the imported SDK module
+  const livenessRef = useRef<any>(null); // LivenessState
+  const frameCountRef = useRef(0);
+  type DescriptorEntry = { descriptor: Float32Array; qualityScore: number };
+  const bestDescriptorRef = useRef<DescriptorEntry | null>(null);
 
   const totalSteps = mode === 'signup' ? (accountType === 'company' ? 3 : 2) : 1;
 
@@ -80,138 +90,163 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
     stopCamera();
   }, [stopCamera]);
 
-  // Auto-detect: capture frame and try to authenticate
-  const autoDetectAndAuth = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  // Authenticate with the pre-computed descriptor
+  const authenticateWithDescriptor = useCallback(async (descriptor: Float32Array) => {
     if (authAttemptedRef.current) return;
+    authAttemptedRef.current = true;
+    setFaceStatus('detected');
 
-    const video = videoRef.current;
-    if (video.readyState < 2) return; // not enough data
+    // Brief pause to show "detected" state, then authenticate
+    setTimeout(async () => {
+      setFaceStatus('authenticating');
 
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
+      try {
+        const res = await fetch('/api/auth/facecard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            descriptor: Array.from(descriptor),
+          }),
+        });
 
-    // Simulate face detection via pixel brightness check in center region
-    // (In production, this uses the SDK's face-api detection)
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const sampleSize = 60;
-    const imageData = ctx.getImageData(
-      centerX - sampleSize / 2,
-      centerY - sampleSize / 2,
-      sampleSize,
-      sampleSize
-    );
-    const pixels = imageData.data;
-    let totalBrightness = 0;
-    let skinTonePixels = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-      totalBrightness += (r + g + b) / 3;
-      // Basic skin-tone heuristic
-      if (r > 60 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 15) {
-        skinTonePixels++;
-      }
-    }
-    const avgBrightness = totalBrightness / (pixels.length / 4);
-    const skinRatio = skinTonePixels / (pixels.length / 4);
+        const data = await res.json();
+        console.log('FaceCard login response:', data);
 
-    // If we detect something face-like, ramp up the pulse
-    if (avgBrightness > 40 && skinRatio > 0.15) {
-      setScanPulse((prev) => Math.min(prev + 25, 100));
-    } else {
-      setScanPulse((prev) => Math.max(prev - 10, 0));
-    }
-  }, []);
-
-  // When pulse hits 100, auto-authenticate
-  useEffect(() => {
-    if (scanPulse >= 100 && faceStatus === 'searching' && !authAttemptedRef.current) {
-      authAttemptedRef.current = true;
-      setFaceStatus('detected');
-
-      // Brief pause to show "detected" state, then authenticate
-      setTimeout(async () => {
-        setFaceStatus('authenticating');
-
-        if (!videoRef.current || !canvasRef.current || !sdkRef.current) return;
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        ctx.drawImage(video, 0, 0);
-
-        try {
-          const imageData = canvas.toDataURL('image/jpeg', 0.95);
-
-          // Analyze face with SDK
-          const analysis = await sdkRef.current.analyzeFace(imageData);
-          if (!analysis || analysis.rejectionReason) {
-            setFaceStatus('error');
-            setFaceError(analysis?.rejectionReason || 'Face quality too low. Please try again.');
-            stopCamera();
-            return;
-          }
-
-          // Send descriptor to API for verification
-          const res = await fetch('/api/auth/facecard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              descriptor: Array.from(analysis.descriptor),
-            }),
-          });
-
-          const data = await res.json();
-          console.log('FaceCard login response:', data);
-
-          if (data.success) {
-            setFaceStatus('success');
-            stopCamera();
-            setTimeout(() => {
-              router.push(redirect || '/dashboard');
-            }, 1200);
-          } else if (data.action === 'create_account') {
-            setFaceStatus('error');
-            setFaceError('Face verified, but no account found. Sign up first.');
-            stopCamera();
-          } else {
-            setFaceStatus('error');
-            setFaceError(data.error || 'Authentication failed.');
-            stopCamera();
-          }
-        } catch (err) {
-          console.error('FaceCard login error:', err);
+        if (data.success) {
+          setFaceStatus('success');
+          stopCamera();
+          setTimeout(() => {
+            router.push(redirect || '/dashboard');
+          }, 1200);
+        } else if (data.action === 'create_account') {
           setFaceStatus('error');
-          setFaceError('Connection error. Please try again.');
+          setFaceError('Face verified, but no account found. Sign up first.');
+          stopCamera();
+        } else {
+          setFaceStatus('error');
+          setFaceError(data.error || 'Authentication failed.');
           stopCamera();
         }
-      }, 600);
+      } catch (err) {
+        console.error('FaceCard login error:', err);
+        setFaceStatus('error');
+        setFaceError('Connection error. Please try again.');
+        stopCamera();
+      }
+    }, 400);
+  }, [redirect, router, stopCamera]);
+
+  // Real face detection + liveness tracking loop (replaces skin-tone heuristic)
+  const trackFace = useCallback(async () => {
+    if (!videoRef.current || authAttemptedRef.current) return;
+    const video = videoRef.current;
+    if (video.readyState < 2) return;
+
+    const sdk = sdkModuleRef.current;
+    if (!sdk) return;
+
+    frameCountRef.current++;
+    const frameNum = frameCountRef.current;
+
+    // Step 1: Fast face detection with TinyFaceDetector
+    const tinyResult = await sdk.detectFaceTiny(video);
+
+    if (!tinyResult) {
+      // No face found — decay the pulse
+      setScanPulse((prev: number) => Math.max(prev - 5, 0));
+      return;
     }
-  }, [scanPulse, faceStatus, redirect, router, stopCamera]);
+
+    // Step 2: Validate face size
+    const box = tinyResult.detection.box;
+    const videoWidth = video.videoWidth || 640;
+    const videoHeight = video.videoHeight || 480;
+    const sizeCheck = sdk.validateFaceSize(box, videoWidth, videoHeight);
+
+    if (!sizeCheck.isValid) {
+      setScanPulse((prev: number) => Math.max(prev - 3, 0));
+      return;
+    }
+
+    // Step 3: Liveness detection (EAR blink + head pose motion)
+    const { avgEAR } = sdk.getEyeAspectRatios(tinyResult.landmarks);
+    const headPose = sdk.estimateHeadPose(tinyResult.landmarks, box);
+
+    livenessRef.current = sdk.updateLivenessState(livenessRef.current, avgEAR, headPose);
+    const liveness = livenessRef.current;
+
+    // Drive scan pulse from real liveness confidence (0-100)
+    setScanPulse(Math.round(liveness.confidence * 100));
+
+    // Step 4: Pre-compute descriptor every Nth frame using accurate SSD detector
+    if (
+      frameNum >= DESCRIPTOR_START_FRAME &&
+      frameNum % DESCRIPTOR_EVERY_N_FRAMES === 0 &&
+      !bestDescriptorRef.current
+    ) {
+      const ssdResult = await sdk.detectFaceSsd(video, 0.3);
+      if (ssdResult) {
+        let qualityScore = Math.min(ssdResult.detection.score, 1.0);
+        const faceArea = ssdResult.detection.box.width * ssdResult.detection.box.height;
+        const imageArea = videoWidth * videoHeight;
+        const sizeRatio = Math.min(faceArea / imageArea, 0.3) / 0.3;
+        qualityScore *= (0.8 + sizeRatio * 0.2);
+
+        const ssdPose = sdk.estimateHeadPose(ssdResult.landmarks, ssdResult.detection.box);
+        if (!ssdPose.isFrontal) {
+          qualityScore *= Math.max(0.5, 1 - (Math.abs(ssdPose.yaw) + Math.abs(ssdPose.pitch)) * 0.3);
+        }
+
+        const shouldUpdate = bestDescriptorRef.current === null || qualityScore > (bestDescriptorRef.current as DescriptorEntry).qualityScore;
+        if (shouldUpdate) {
+          bestDescriptorRef.current = {
+            descriptor: ssdResult.descriptor,
+            qualityScore,
+          };
+        }
+      }
+    }
+
+    // Step 5: If liveness passed + descriptor ready → authenticate
+    if (liveness.isLive && bestDescriptorRef.current) {
+      authenticateWithDescriptor(bestDescriptorRef.current.descriptor);
+      return;
+    }
+
+    // Also extract descriptor after liveness passes if we don't have one yet
+    if (liveness.isLive && !bestDescriptorRef.current) {
+      const ssdResult = await sdk.detectFaceSsd(video, 0.3);
+      if (ssdResult) {
+        bestDescriptorRef.current = {
+          descriptor: ssdResult.descriptor,
+          qualityScore: ssdResult.detection.score,
+        };
+        authenticateWithDescriptor(ssdResult.descriptor);
+      }
+    }
+  }, [authenticateWithDescriptor]);
 
   const startCamera = useCallback(async () => {
     setFaceStatus('initializing');
     setFaceError('');
     setScanPulse(0);
     authAttemptedRef.current = false;
+    frameCountRef.current = 0;
+    bestDescriptorRef.current = null;
     try {
       // Initialize SDK — dynamic import ensures models load only client-side
-      // and awaiting here prevents the race where FaceSmashClient was null
       if (!sdkRef.current) {
-        const { FaceSmashClient } = await import('@facesmash/sdk');
-        sdkRef.current = new FaceSmashClient({
+        const sdkModule = await import('@facesmash/sdk');
+        sdkModuleRef.current = sdkModule;
+        sdkRef.current = new sdkModule.FaceSmashClient({
           apiUrl: 'https://api.facesmash.app',
           modelUrl: FACE_API_MODEL_URL,
         });
         await sdkRef.current.init();
       }
+
+      // Initialize liveness state
+      livenessRef.current = sdkModuleRef.current.createLivenessState();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: 640, height: 480 },
@@ -220,17 +255,17 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-      // Start auto-scanning after a brief warm-up
+      // Start real face tracking after a brief warm-up
       setTimeout(() => {
         setFaceStatus('searching');
-        scanIntervalRef.current = setInterval(autoDetectAndAuth, 400);
+        scanIntervalRef.current = setInterval(trackFace, TRACKING_INTERVAL_MS);
       }, 800);
     } catch (err) {
       console.error('Camera start error:', err);
       setFaceStatus('error');
       setFaceError('Camera access denied. Please allow camera permissions.');
     }
-  }, [autoDetectAndAuth]);
+  }, [trackFace]);
 
   useEffect(() => {
     return () => stopCamera();
@@ -504,13 +539,20 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
 
                     {/* Status text */}
                     <div className="px-4 py-3 text-center">
-                      {(faceStatus === 'initializing' || faceStatus === 'searching') && (
+                      {faceStatus === 'initializing' && (
+                        <p className="text-[11px] text-white/30 leading-relaxed">Loading face models...</p>
+                      )}
+                      {faceStatus === 'searching' && (
                         <p className="text-[11px] text-white/30 leading-relaxed">
-                          {faceStatus === 'initializing' ? 'Starting camera...' : 'Look at the camera — we\'ll recognize you automatically'}
+                          {scanPulse === 0
+                            ? 'Position your face in the frame'
+                            : scanPulse < 50
+                              ? 'Face detected — blink naturally'
+                              : 'Verifying liveness...'}
                         </p>
                       )}
                       {faceStatus === 'detected' && (
-                        <p className="text-[11px] text-emerald-400/70 font-medium">Face detected</p>
+                        <p className="text-[11px] text-emerald-400/70 font-medium">Liveness confirmed</p>
                       )}
                     </div>
                   </div>
