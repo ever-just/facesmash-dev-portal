@@ -24,19 +24,19 @@ jobs:
             export NODE_OPTIONS="--max_old_space_size=1536"
             export NETLIFY_AUTH_TOKEN=nfp_xxmxU76u3iGfxMCemvPdzDfVrVocc9C10c19
             export NETLIFY_SITE_ID=31682fc2-cc0f-4bf2-aad5-d9bcbc77eaa3
-            
+
             cd /opt/facesmash-dev-portal
-            
+
             # Pull latest from GitHub
             GIT_SSH_COMMAND="ssh -i /root/.ssh/facesmash-devportal-deploy -o StrictHostKeyChecking=no" \
               git pull origin main
-            
+
             # Clean build artifacts
             rm -rf .next .netlify
-            
+
             # Build via Netlify CLI (known working)
             node /usr/lib/node_modules/netlify-cli/bin/run.js build
-            
+
             # Deploy to production
             node /usr/lib/node_modules/netlify-cli/bin/run.js deploy \
               --dir=.netlify/static \
