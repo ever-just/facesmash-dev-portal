@@ -520,7 +520,7 @@ export const inviteTeamMember = validatedActionWithRole(
           eq(invitations.status, 'pending')
         )
       )
-      .orderBy(sql`created_at DESC`)
+      .orderBy(invitations.invitedAt)
       .limit(1);
 
     const inviteLink = newInvitation
