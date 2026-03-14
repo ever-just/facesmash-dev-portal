@@ -1,65 +1,99 @@
-/**
- * Email Service - Resend Integration
- * Primary email provider for FaceSmash Developer Portal
- */
-
 import { Resend } from 'resend';
 
-const resend = new Resend('re_78sX6QZx_2PpYuF6ULzkuaueHxdQzf56P');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const SENDER_EMAIL = 'noreply@developers.facesmash.app';
-export const REPLY_TO_EMAIL = 'support@facesmash.app';
+const SENDER_EMAIL = 'face@everjust.co';
+const REPLY_TO_EMAIL = 'support@everjust.co';
+const BRAND_COLOR = '#10B981';
 
-export interface EmailOptions {
+interface EmailOptions {
   to: string;
   subject: string;
   html: string;
-  replyTo?: string;
   tags?: Record<string, string>;
 }
 
-/**
- * Send email via Resend
- */
-export async function sendEmail(options: EmailOptions) {
+async function sendEmail(options: EmailOptions) {
   try {
-    const result = await resend.emails.send({
-      from: SENDER_EMAIL,
+    const response = await resend.emails.send({
+      from: `FaceSmash <${SENDER_EMAIL}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
-      replyTo: options.replyTo || REPLY_TO_EMAIL,
-      tags: options.tags || {},
+      reply_to: REPLY_TO_EMAIL,
     });
-
-    if (result.error) {
-      console.error('Resend error:', result.error);
-      throw new Error(`Failed to send email: ${result.error.message}`);
+    if (response.error) {
+      console.error('Resend API Error:', response.error);
+      return { success: false, error: response.error };
     }
-
-    return { success: true, messageId: result.data?.id };
+    console.log(`Email sent to ${options.to}:`, response.data?.id);
+    return { success: true, id: response.data?.id };
   } catch (error) {
-    console.error('Email send error:', error);
-    throw error;
+    console.error('Failed to send email:', error);
+    return { success: false, error };
   }
 }
 
-/**
- * Send welcome email to new user
- */
-export async function sendWelcomeEmail(email: string, name: string) {
-  const html = getWelcomeEmailTemplate(name);
-  return sendEmail({
-    to: email,
-    subject: 'Welcome to FaceSmash Developer Portal',
-    html,
-    tags: { type: 'welcome' },
-  });
+function getEmailWrapper(title: string, body: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
+    <tr style="background:linear-gradient(135deg,${BRAND_COLOR} 0%,#059669 100%);">
+      <td style="padding:32px 24px;text-align:center;">
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">FaceSmash</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">${title}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px 24px;background:#fff;border-radius:0 0 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        ${body}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:24px;text-align:center;color:#9ca3af;font-size:12px;">
+        <p style="margin:0 0 8px;">&#169; 2026 FaceSmash &#x2014; everjust.co</p>
+        <a href="https://developers.facesmash.app/dashboard/settings?tab=account" style="color:${BRAND_COLOR};text-decoration:none;">Email Preferences</a>
+        &nbsp;&bull;&nbsp;
+        <a href="https://facesmash.app/privacy" style="color:${BRAND_COLOR};text-decoration:none;">Privacy Policy</a>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-/**
- * Send team invite email
- */
+function btn(text: string, url: string): string {
+  return `<a href="${url}" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;margin:4px 0;">${text}</a>`;
+}
+
+// ─── Welcome Email ───────────────────────────────────────────
+
+export async function sendWelcomeEmail(email: string, name: string) {
+  const firstName = (name || email).split(' ')[0];
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">Hi ${firstName},</p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px;">
+      Welcome to FaceSmash! Your account is ready. You can now use passwordless face recognition to log in securely.
+    </p>
+    <ul style="color:#374151;font-size:14px;line-height:2;padding-left:20px;margin:0 0 24px;">
+      <li>Register your face for instant login</li>
+      <li>Create API keys for your projects</li>
+      <li>Manage your team and billing</li>
+    </ul>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Go to Dashboard', 'https://developers.facesmash.app/dashboard')}</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0;">If you didn't create this account, contact us at ${REPLY_TO_EMAIL}.</p>
+  `;
+  return sendEmail({ to: email, subject: 'Welcome to FaceSmash', html: getEmailWrapper('Welcome', body), tags: { type: 'welcome' } });
+}
+
+// ─── Team Invite Email ───────────────────────────────────────
+
 export async function sendTeamInviteEmail(
   email: string,
   inviterName: string,
@@ -67,79 +101,89 @@ export async function sendTeamInviteEmail(
   inviteLink: string,
   role: string = 'member'
 ) {
-  const html = getTeamInviteEmailTemplate(inviterName, teamName, inviteLink, role);
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">
+      <strong>${inviterName}</strong> has invited you to join <strong>${teamName}</strong> as a <strong>${role}</strong>.
+    </p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;">
+      Accept the invitation to start collaborating on face recognition projects.
+    </p>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Accept Invitation', inviteLink)}</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0;">This invitation expires in 7 days. If you don't recognize this, you can safely ignore it.</p>
+  `;
   return sendEmail({
     to: email,
     subject: `${inviterName} invited you to join ${teamName}`,
-    html,
-    tags: { type: 'team-invite', team: teamName },
+    html: getEmailWrapper('Team Invitation', body),
+    tags: { type: 'team-invite' },
   });
 }
 
-/**
- * Send password reset email
- */
+// ─── Password Reset Email ────────────────────────────────────
+
 export async function sendPasswordResetEmail(email: string, resetLink: string) {
-  const html = getPasswordResetEmailTemplate(resetLink);
-  return sendEmail({
-    to: email,
-    subject: 'Reset your FaceSmash password',
-    html,
-    tags: { type: 'password-reset' },
-  });
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">Reset Your Password</p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;">
+      We received a request to reset your password. Click the button below. This link expires in 1 hour.
+    </p>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Reset Password', resetLink)}</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0;">If you didn't request this, you can safely ignore this email.</p>
+  `;
+  return sendEmail({ to: email, subject: 'Reset Your FaceSmash Password', html: getEmailWrapper('Password Reset', body), tags: { type: 'password-reset' } });
 }
 
-/**
- * Send password changed confirmation
- */
+// ─── Password Changed Email ──────────────────────────────────
+
 export async function sendPasswordChangedEmail(email: string) {
-  const html = getPasswordChangedEmailTemplate();
-  return sendEmail({
-    to: email,
-    subject: 'Your password has been changed',
-    html,
-    tags: { type: 'password-changed' },
-  });
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">Password Changed Successfully</p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;">
+      Your password has been updated. If you didn't make this change, contact us immediately.
+    </p>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Go to Dashboard', 'https://developers.facesmash.app/dashboard')}</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0;">Suspicious activity? Email us at ${REPLY_TO_EMAIL}</p>
+  `;
+  return sendEmail({ to: email, subject: 'Your Password Has Been Changed', html: getEmailWrapper('Password Changed', body), tags: { type: 'password-changed' } });
 }
 
-/**
- * Send API key created notification
- */
-export async function sendApiKeyCreatedEmail(
-  email: string,
-  keyName: string,
-  expiresAt?: string
-) {
-  const html = getApiKeyCreatedEmailTemplate(keyName, expiresAt);
-  return sendEmail({
-    to: email,
-    subject: 'API Key Created',
-    html,
-    tags: { type: 'api-key-created' },
-  });
+// ─── API Key Created Email ───────────────────────────────────
+
+export async function sendApiKeyCreatedEmail(email: string, keyName: string, expiresAt?: string) {
+  const expiry = expiresAt ? `Expires: <strong>${new Date(expiresAt).toLocaleDateString()}</strong>` : 'No expiration date.';
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">New API Key Created</p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 8px;">
+      Key name: <strong>${keyName}</strong><br>${expiry}
+    </p>
+    <div style="padding:12px 16px;background:#f0fdf4;border-left:4px solid ${BRAND_COLOR};border-radius:4px;margin:0 0 24px;">
+      <p style="margin:0;color:#065f46;font-size:13px;"><strong>Keep this key secure.</strong> Never commit it to version control or share it publicly.</p>
+    </div>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Manage API Keys', 'https://developers.facesmash.app/dashboard/settings')}</p>
+  `;
+  return sendEmail({ to: email, subject: `New API Key: ${keyName}`, html: getEmailWrapper('API Key Created', body), tags: { type: 'api-key-created' } });
 }
 
-/**
- * Send usage alert
- */
-export async function sendUsageAlertEmail(
-  email: string,
-  usagePercent: number,
-  limit: number,
-  resetDate: string
-) {
-  const html = getUsageAlertEmailTemplate(usagePercent, limit, resetDate);
-  return sendEmail({
-    to: email,
-    subject: '⚠️ API Usage Alert',
-    html,
-    tags: { type: 'usage-alert' },
-  });
+// ─── Usage Alert Email ───────────────────────────────────────
+
+export async function sendUsageAlertEmail(email: string, usagePercent: number, limit: string, resetDate: string) {
+  const color = usagePercent >= 90 ? '#ef4444' : usagePercent >= 75 ? '#f59e0b' : BRAND_COLOR;
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 16px;">API Usage Alert</p>
+    <p style="color:#374151;font-size:14px;margin:0 0 16px;">
+      You've used <strong style="color:${color};">${usagePercent}%</strong> of your ${limit} plan limit.
+    </p>
+    <div style="background:#f3f4f6;border-radius:6px;height:8px;overflow:hidden;margin:0 0 8px;">
+      <div style="height:100%;width:${usagePercent}%;background:${color};border-radius:6px;"></div>
+    </div>
+    <p style="color:#9ca3af;font-size:12px;margin:0 0 24px;">Resets: ${new Date(resetDate).toLocaleDateString()}</p>
+    <p style="text-align:center;margin:0 0 24px;">${btn('View Usage', 'https://developers.facesmash.app/dashboard/settings?tab=billing')}</p>
+  `;
+  return sendEmail({ to: email, subject: `Usage Alert: ${usagePercent}% of ${limit} used`, html: getEmailWrapper('Usage Alert', body), tags: { type: 'usage-alert' } });
 }
 
-/**
- * Send security alert
- */
+// ─── Security Alert Email ────────────────────────────────────
+
 export async function sendSecurityAlertEmail(
   email: string,
   eventType: string,
@@ -147,147 +191,58 @@ export async function sendSecurityAlertEmail(
   timestamp: string,
   verifyLink: string
 ) {
-  const html = getSecurityAlertEmailTemplate(eventType, location, timestamp, verifyLink);
-  return sendEmail({
-    to: email,
-    subject: '🔒 Security Alert: Unusual Activity',
-    html,
-    tags: { type: 'security-alert' },
-  });
-}
-
-// ─── Email Template Functions ───────────────────────────────────────
-
-function getEmailLayout(content: string, previewText: string = '') {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #111827; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .header { text-align: center; padding: 30px 20px 20px; }
-    .logo { height: 40px; margin-bottom: 10px; }
-    .content { padding: 30px 20px; }
-    .cta { background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; margin: 20px 0; font-weight: 600; }
-    .footer { background: #F3F4F6; padding: 20px; text-align: center; font-size: 12px; color: #6B7280; }
-    .divider { border: none; border-top: 1px solid #E5E7EB; margin: 20px 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="https://facesmash.app/facesmash-logo.png" alt="FaceSmash" class="logo">
-      <h1 style="margin: 0; font-size: 24px; font-weight: 600;">FaceSmash</h1>
+  const descriptions: Record<string, string> = {
+    login: 'A new login was detected on your account',
+    'new-device': 'Your account was accessed from a new device',
+    'password-changed': 'Your password was changed',
+    'api-key-created': 'A new API key was created',
+  };
+  const desc = descriptions[eventType] || 'Unusual activity was detected on your account';
+  const body = `
+    <div style="padding:12px 16px;background:#fef2f2;border-left:4px solid #ef4444;border-radius:4px;margin:0 0 20px;">
+      <p style="margin:0;color:#991b1b;font-weight:600;font-size:14px;">${desc}</p>
     </div>
-    <div class="content">
-      ${content}
-    </div>
-    <div class="footer">
-      <p>FaceSmash Developer Portal</p>
-      <p>© 2026 EVERJUST COMPANY. All rights reserved.</p>
-      <p><a href="https://developers.facesmash.app/settings" style="color: #10B981; text-decoration: none;">Manage email preferences</a></p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}
-
-function getWelcomeEmailTemplate(name: string) {
-  const content = `
-    <h2>Welcome to FaceSmash! 👋</h2>
-    <p>Hi ${name},</p>
-    <p>Your developer account has been created successfully. You're now ready to integrate face authentication into your applications.</p>
-    <h3>Next Steps:</h3>
-    <ol>
-      <li><strong>Create your first app</strong> – Register an application in the Applications section</li>
-      <li><strong>Generate an API key</strong> – Get credentials to start using the FaceSmash API</li>
-      <li><strong>Read the docs</strong> – Check out our <a href="https://docs.facesmash.app">comprehensive documentation</a></li>
-    </ol>
-    <a href="https://developers.facesmash.app/dashboard/overview" class="cta">Go to Dashboard</a>
-    <p>Questions? <a href="mailto:support@facesmash.app">Contact our support team</a></p>
-  `;
-  return getEmailLayout(content, 'Welcome to FaceSmash Developer Portal');
-}
-
-function getTeamInviteEmailTemplate(inviterName: string, teamName: string, inviteLink: string, role: string) {
-  const content = `
-    <h2>You're invited to join ${teamName}</h2>
-    <p>Hi,</p>
-    <p><strong>${inviterName}</strong> has invited you to join <strong>${teamName}</strong> as a <strong>${role}</strong>.</p>
-    <p>Click below to accept this invitation (valid for 7 days):</p>
-    <a href="${inviteLink}" class="cta">Accept Invitation</a>
-    <p style="color: #6B7280; font-size: 14px;">If you did not expect this invitation, you can safely ignore this email.</p>
-  `;
-  return getEmailLayout(content, `${inviterName} invited you to ${teamName}`);
-}
-
-function getPasswordResetEmailTemplate(resetLink: string) {
-  const content = `
-    <h2>Reset Your Password</h2>
-    <p>We received a request to reset your password. Click the link below to create a new password (valid for 24 hours):</p>
-    <a href="${resetLink}" class="cta">Reset Password</a>
-    <p style="color: #6B7280; font-size: 14px;">If you did not request this, you can ignore this email. Your password will remain unchanged.</p>
-  `;
-  return getEmailLayout(content, 'Password Reset Request');
-}
-
-function getPasswordChangedEmailTemplate() {
-  const content = `
-    <h2>Password Changed ✓</h2>
-    <p>Your password has been successfully changed.</p>
-    <p>If you did not make this change, <a href="https://developers.facesmash.app/settings">visit your security settings immediately</a> to investigate.</p>
-  `;
-  return getEmailLayout(content, 'Password Changed');
-}
-
-function getApiKeyCreatedEmailTemplate(keyName: string, expiresAt?: string) {
-  const content = `
-    <h2>New API Key Created</h2>
-    <p>A new API key has been created:</p>
-    <p><strong>${keyName}</strong>${expiresAt ? ` (Expires: ${expiresAt})` : ''}</p>
-    <p><a href="https://developers.facesmash.app/settings">View all API keys</a></p>
-    <p style="color: #6B7280; font-size: 14px;">If you did not create this key, revoke it immediately in your settings.</p>
-  `;
-  return getEmailLayout(content, 'API Key Created');
-}
-
-function getUsageAlertEmailTemplate(usagePercent: number, limit: number, resetDate: string) {
-  const content = `
-    <h2>⚠️ API Usage Alert</h2>
-    <p>Your API usage has reached <strong>${usagePercent}%</strong> of your monthly limit.</p>
-    <p>Monthly Limit: <strong>${limit.toLocaleString()}</strong> calls</p>
-    <p>Resets on: <strong>${resetDate}</strong></p>
-    <a href="https://developers.facesmash.app/settings?tab=billing" class="cta">View Usage Details</a>
-    <p><a href="https://developers.facesmash.app/settings?tab=billing">Upgrade your plan</a> to increase your limit.</p>
-  `;
-  return getEmailLayout(content, 'API Usage Alert');
-}
-
-function getSecurityAlertEmailTemplate(eventType: string, location: string, timestamp: string, verifyLink: string) {
-  const content = `
-    <h2>🔒 Security Alert</h2>
-    <p><strong>${eventType}</strong> on your account</p>
-    <p>
+    <p style="color:#374151;font-size:14px;margin:0 0 24px;">
       <strong>Location:</strong> ${location}<br>
-      <strong>Time:</strong> ${timestamp}
+      <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}
     </p>
-    <p style="color: #6B7280; font-size: 14px;">If this was you, you can ignore this email. If not, verify your account immediately:</p>
-    <a href="${verifyLink}" class="cta">Review Activity</a>
+    <p style="text-align:center;margin:0 0 24px;">${btn('Verify Account', verifyLink)}</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0;">If this was you, ignore this email. If not, secure your account immediately.</p>
   `;
-  return getEmailLayout(content, 'Security Alert');
+  return sendEmail({ to: email, subject: 'Security Alert: Verify Your Account', html: getEmailWrapper('Security Alert', body), tags: { type: 'security-alert', event: eventType } });
 }
 
-export default {
-  sendEmail,
-  sendWelcomeEmail,
-  sendTeamInviteEmail,
-  sendPasswordResetEmail,
-  sendPasswordChangedEmail,
-  sendApiKeyCreatedEmail,
-  sendUsageAlertEmail,
-  sendSecurityAlertEmail,
-};
+// ─── Weekly Digest Email ─────────────────────────────────────
+
+export async function sendWeeklyDigestEmail(
+  email: string,
+  stats: { totalRequests: number; uniqueUsers: number; averageResponseTime: number; errorRate: number }
+) {
+  const body = `
+    <p style="color:#111827;font-size:16px;margin:0 0 20px;">Your Weekly API Summary</p>
+    <table width="100%" cellpadding="0" cellspacing="8" style="border-collapse:separate;">
+      <tr>
+        <td style="padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Requests</p>
+          <p style="margin:6px 0 0;color:${BRAND_COLOR};font-size:28px;font-weight:700;">${stats.totalRequests.toLocaleString()}</p>
+        </td>
+        <td style="padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Users</p>
+          <p style="margin:6px 0 0;color:${BRAND_COLOR};font-size:28px;font-weight:700;">${stats.uniqueUsers.toLocaleString()}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Avg Response</p>
+          <p style="margin:6px 0 0;color:${BRAND_COLOR};font-size:28px;font-weight:700;">${stats.averageResponseTime}ms</p>
+        </td>
+        <td style="padding:16px;background:#f0fdf4;border-radius:8px;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Error Rate</p>
+          <p style="margin:6px 0 0;color:${stats.errorRate > 1 ? '#ef4444' : BRAND_COLOR};font-size:28px;font-weight:700;">${stats.errorRate.toFixed(2)}%</p>
+        </td>
+      </tr>
+    </table>
+    <p style="text-align:center;margin:24px 0 0;">${btn('View Full Analytics', 'https://developers.facesmash.app/dashboard/settings?tab=activity')}</p>
+  `;
+  return sendEmail({ to: email, subject: 'Your FaceSmash Weekly Digest', html: getEmailWrapper('Weekly Digest', body), tags: { type: 'weekly-digest' } });
+}
