@@ -526,10 +526,16 @@ export const inviteTeamMember = validatedActionWithRole(
       ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up?inviteId=${newInvitation.id}`
       : `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up`;
 
+    const [teamRow] = await db
+      .select({ name: teams.name })
+      .from(teams)
+      .where(eq(teams.id, userWithTeam.teamId))
+      .limit(1);
+
     sendTeamInviteEmail(
       email,
       user.name || user.email,
-      userWithTeam.team?.name || 'your team',
+      teamRow?.name || 'your team',
       inviteLink,
       role
     ).catch((err) => console.error('Failed to send invite email:', err));
