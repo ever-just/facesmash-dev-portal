@@ -18,6 +18,7 @@ import {
 } from '@/lib/db/schema';
 import { comparePasswords, hashPassword, setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
@@ -523,8 +524,8 @@ export const inviteTeamMember = validatedActionWithRole(
       .limit(1);
 
     const inviteLink = newInvitation
-      ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up?inviteId=${newInvitation.id}`
-      : `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up`;
+      ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/invitations/accept?id=${newInvitation.id}&email=${encodeURIComponent(email)}`
+      : `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}`;
 
     const [teamRow] = await db
       .select({ name: teams.name })
@@ -541,5 +542,88 @@ export const inviteTeamMember = validatedActionWithRole(
     ).catch((err) => console.error('Failed to send invite email:', err));
 
     return { success: 'Invitation sent successfully' };
+  }
+);
+
+const acceptInvitationSchema = z.object({
+  invitationId: z.coerce.number(),
+  email: z.string().email('Invalid email address'),
+});
+
+export const acceptInvitation = validatedActionWithUser(
+  acceptInvitationSchema,
+  async (data, _, user) => {
+    const { invitationId, email } = data;
+
+    // Verify invitation exists and matches request
+    const [invitation] = await db
+      .select()
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.id, invitationId),
+          eq(invitations.email, email),
+          eq(invitations.status, 'pending')
+        )
+      );
+
+    if (!invitation) {
+      return {
+        error: 'Invitation is invalid, expired, or already accepted.',
+      };
+    }
+
+    // Prevent accepting invitation with different email
+    if (user.email !== email) {
+      return {
+        error: 'You must use the email address the invitation was sent to.',
+      };
+    }
+
+    // Prevent duplicate team members
+    const existingMember = await db
+      .select()
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.userId, user.id),
+          eq(teamMembers.teamId, invitation.teamId)
+        )
+      );
+
+    if (existingMember.length > 0) {
+      return { error: 'You are already a member of this team.' };
+    }
+
+    // Create team member with role from invitation
+    const newMember: NewTeamMember = {
+      userId: user.id,
+      teamId: invitation.teamId,
+      role: invitation.role as 'owner' | 'admin' | 'member',
+    };
+
+    try {
+      await Promise.all([
+        db.insert(teamMembers).values(newMember),
+        db
+          .update(invitations)
+          .set({ status: 'accepted' })
+          .where(eq(invitations.id, invitationId)),
+        logActivity(
+          invitation.teamId,
+          user.id,
+          ActivityType.ACCEPT_INVITATION
+        ),
+      ]);
+
+      revalidatePath('/dashboard/settings');
+      return {
+        success: true,
+        message: 'You have been added to the team!',
+      };
+    } catch (error) {
+      console.error('Failed to accept invitation:', error);
+      return { error: 'Failed to accept invitation. Please try again.' };
+    }
   }
 );
