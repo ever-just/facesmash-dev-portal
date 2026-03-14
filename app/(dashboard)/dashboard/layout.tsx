@@ -85,9 +85,9 @@ export default function DashboardLayout({
           </nav>
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto bg-white lg:bg-gray-100 p-3 sm:p-4 lg:p-8">
-          <div className="max-w-6xl">{children}</div>
+        {/* Main content — overflow-x-hidden prevents child cards/code blocks from bleeding */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-white lg:bg-gray-100 p-3 sm:p-4 lg:p-8">
+          <div className="w-full max-w-6xl">{children}</div>
         </main>
       </div>
     </div>
