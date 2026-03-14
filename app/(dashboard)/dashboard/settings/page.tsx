@@ -33,8 +33,7 @@ import {
 import useSWR from 'swr';
 import { updatePassword, deleteAccount } from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
-import { ActivityType } from '@/lib/db/schema';
-import type { DeveloperApp, TeamDataWithMembers, User } from '@/lib/db/schema';
+import type { TeamDataWithMembers, User } from '@/lib/db/schema';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -365,7 +364,7 @@ export default function SettingsPage() {
                   {teamData.teamMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between py-3">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{member.userEmail}</p>
+                        <p className="text-sm font-medium text-gray-900">{member.user.email}</p>
                         <p className="text-xs text-gray-500">
                           Joined {new Date(member.joinedAt).toLocaleDateString()}
                         </p>
