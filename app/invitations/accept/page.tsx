@@ -1,10 +1,15 @@
+'use client';
+
 import { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AcceptInvitationForm from './accept-form';
 
 function InvalidInvitation() {
+  const router = useRouter();
+
   return (
     <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       <Card className="w-full max-w-md">
@@ -19,7 +24,7 @@ function InvalidInvitation() {
             The invitation link is missing required information. Please check your email and try again.
           </p>
           <Button
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => router.push('/dashboard')}
             className="w-full bg-emerald-600 hover:bg-emerald-700"
           >
             Go to Dashboard
