@@ -27,7 +27,7 @@ import {
   validatedActionWithRole
 } from '@/lib/auth/middleware';
 import { canAddTeamMember } from '@/lib/plans/limits';
-import { sendWelcomeEmail, sendTeamInviteEmail } from '@/lib/email';
+import { sendWelcomeEmail, sendTeamInviteEmail, sendPasswordChangedEmail } from '@/lib/email';
 
 async function logActivity(
   teamId: number | null | undefined,
@@ -299,6 +299,11 @@ export const updatePassword = validatedActionWithUser(
         .where(eq(users.id, user.id)),
       logActivity(userWithTeam?.teamId, user.id, ActivityType.UPDATE_PASSWORD)
     ]);
+
+    // Notify user that password was changed
+    sendPasswordChangedEmail(user.email).catch((err) =>
+      console.error('Failed to send password changed email:', err)
+    );
 
     return {
       success: 'Password updated successfully.'
