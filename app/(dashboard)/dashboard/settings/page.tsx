@@ -31,10 +31,9 @@ import {
   ScanFace,
 } from 'lucide-react';
 import useSWR from 'swr';
-import { updatePassword, deleteAccount } from '@/lib/auth/actions';
+import { updatePassword, deleteAccount } from '@/app/(login)/actions';
 import { ActivityType } from '@/lib/db/schema';
 import type { DeveloperApp, TeamDataWithMembers, User } from '@/lib/db/schema';
-import { getActivityLogs } from '@/lib/db/queries';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -89,21 +88,14 @@ export default function SettingsPage() {
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
   const { data: faceCardStatus } = useSWR('/api/auth/facecard/register', fetcher);
-  const [activityLogs, setActivityLogs] = useState<any[]>([]);
 
   // Form states
   const [passwordState, passwordAction, isPasswordPending] = useActionState(updatePassword, {});
   const [deleteState, deleteAction, isDeletePending] = useActionState(deleteAccount, {});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Fetch activity logs on mount
-  React.useEffect(() => {
-    const fetchLogs = async () => {
-      const logs = await getActivityLogs();
-      setActivityLogs(logs);
-    };
-    fetchLogs();
-  }, []);
+  const { data: activityLogsData } = useSWR<any[]>('/api/activity', fetcher);
+  const activityLogs = activityLogsData ?? [];
 
   const getRelativeTime = (date: Date) => {
     const now = new Date();
