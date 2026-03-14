@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import useSWR from 'swr';
 import { updatePassword, deleteAccount } from '@/app/(login)/actions';
+import { ActionState } from '@/lib/auth/middleware';
 import { ActivityType } from '@/lib/db/schema';
 import type { DeveloperApp, TeamDataWithMembers, User } from '@/lib/db/schema';
 
@@ -90,8 +91,8 @@ export default function SettingsPage() {
   const { data: faceCardStatus } = useSWR('/api/auth/facecard/register', fetcher);
 
   // Form states
-  const [passwordState, passwordAction, isPasswordPending] = useActionState(updatePassword, { error: '', success: '' });
-  const [deleteState, deleteAction, isDeletePending] = useActionState(deleteAccount, { error: '', success: '' });
+  const [passwordState, passwordAction, isPasswordPending] = useActionState<ActionState, FormData>(updatePassword, { error: '' });
+  const [deleteState, deleteAction, isDeletePending] = useActionState<ActionState, FormData>(deleteAccount, { error: '' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const { data: activityLogsData } = useSWR<any[]>('/api/activity', fetcher);
