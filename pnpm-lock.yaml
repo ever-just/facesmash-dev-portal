@@ -74,6 +74,9 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+      resend:
+        specifier: ^6.9.3
+        version: 6.9.3
       recharts:
         specifier: ^3.8.0
         version: 3.8.0(@types/react@19.1.4)(react-dom@19.1.0(react@19.1.0))(react-is@19.2.4)(react@19.1.0)(redux@5.0.1)
