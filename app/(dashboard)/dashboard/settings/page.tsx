@@ -31,7 +31,7 @@ import {
   ScanFace,
 } from 'lucide-react';
 import useSWR from 'swr';
-import { updatePassword, deleteAccount } from '@/app/(login)/actions';
+import { updatePassword, deleteAccount, inviteTeamMember } from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import type { TeamDataWithMembers, User } from '@/lib/db/schema';
 
@@ -92,7 +92,10 @@ export default function SettingsPage() {
   // Form states
   const [passwordState, passwordAction, isPasswordPending] = useActionState<ActionState, FormData>(updatePassword, { error: '' });
   const [deleteState, deleteAction, isDeletePending] = useActionState<ActionState, FormData>(deleteAccount, { error: '' });
+  const [inviteState, inviteAction, isInvitePending] = useActionState<ActionState, FormData>(inviteTeamMember, { error: '' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'owner' | 'member'>('member');
 
   const { data: activityLogsData } = useSWR<any[]>('/api/activity', fetcher);
   const activityLogs = activityLogsData ?? [];
@@ -379,6 +382,69 @@ export default function SettingsPage() {
               ) : (
                 <p className="text-sm text-gray-500 italic py-4 text-center">No team members</p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Invite Team Member
+              </CardTitle>
+              <CardDescription>Add a new member to your team</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={inviteAction} className="space-y-4">
+                {inviteState?.error && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                    <p className="text-sm text-red-700">{inviteState.error}</p>
+                  </div>
+                )}
+                {inviteState?.success && (
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <p className="text-sm text-emerald-700">Invitation sent successfully!</p>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="invite-email" className="mb-2">Email Address</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    name="email"
+                    placeholder="user@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="invite-role" className="mb-2">Role</Label>
+                  <select
+                    id="invite-role"
+                    name="role"
+                    defaultValue="member"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="member">Member</option>
+                    <option value="owner">Owner</option>
+                  </select>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isInvitePending}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {isInvitePending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending invitation...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Send Invitation
+                    </>
+                  )}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 
