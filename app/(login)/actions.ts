@@ -27,6 +27,7 @@ import {
   validatedActionWithRole
 } from '@/lib/auth/middleware';
 import { canAddTeamMember } from '@/lib/plans/limits';
+import { sendWelcomeEmail, sendTeamInviteEmail } from '@/lib/email';
 
 async function logActivity(
   teamId: number | null | undefined,
@@ -223,6 +224,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     logActivity(teamId, createdUser.id, ActivityType.SIGN_UP),
     setSession(createdUser)
   ]);
+
+  // Send welcome email (non-blocking)
+  sendWelcomeEmail(email, createdUser.name || email).catch((err) =>
+    console.error('Failed to send welcome email:', err)
+  );
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
@@ -497,8 +503,31 @@ export const inviteTeamMember = validatedActionWithRole(
       ActivityType.INVITE_TEAM_MEMBER
     );
 
-    // TODO: Send invitation email and include ?inviteId={id} to sign-up URL
-    // await sendInvitationEmail(email, userWithTeam.team.name, role)
+    // Send invitation email
+    const [newInvitation] = await db
+      .select()
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.email, email),
+          eq(invitations.teamId, userWithTeam.teamId),
+          eq(invitations.status, 'pending')
+        )
+      )
+      .orderBy(sql`created_at DESC`)
+      .limit(1);
+
+    const inviteLink = newInvitation
+      ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up?inviteId=${newInvitation.id}`
+      : `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/sign-up`;
+
+    sendTeamInviteEmail(
+      email,
+      user.name || user.email,
+      userWithTeam.team?.name || 'your team',
+      inviteLink,
+      role
+    ).catch((err) => console.error('Failed to send invite email:', err));
 
     return { success: 'Invitation sent successfully' };
   }
