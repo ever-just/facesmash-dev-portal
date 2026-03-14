@@ -45,7 +45,7 @@ export default function OverviewPage() {
 
       {/* FaceCard Setup Prompt */}
       {faceCardStatus && !faceCardStatus.hasCard && !faceCardStatus.error && (
-        <Link href="/dashboard/security">
+        <Link href="/dashboard/settings">
           <Card className="mb-6 border-emerald-200 bg-emerald-50/50 hover:border-emerald-300 transition-colors cursor-pointer">
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center gap-4">
@@ -99,7 +99,7 @@ export default function OverviewPage() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/usage">
+        <Link href="/dashboard/settings">
           <Card className="hover:border-emerald-300 transition-colors cursor-pointer h-full">
             <CardContent className="pt-6">
               <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
@@ -272,7 +272,7 @@ console.log(result.detections);`}</code>
                 </p>
               </div>
             </div>
-            <Link href="/dashboard/billing" className="flex-shrink-0">
+            <Link href="/dashboard/settings" className="flex-shrink-0">
               <Button variant="outline" size="sm">
                 {teamData?.planName ? 'Manage' : 'Upgrade'}
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -284,3 +284,4 @@ console.log(result.detections);`}</code>
     </section>
   );
 }
+
