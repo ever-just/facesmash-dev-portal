@@ -31,7 +31,7 @@ import {
   ScanFace,
 } from 'lucide-react';
 import useSWR from 'swr';
-import { updatePassword, deleteAccount, inviteTeamMember } from '@/app/(login)/actions';
+import { updatePassword, deleteAccount, inviteTeamMember, removeTeamMember } from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import type { TeamDataWithMembers, User } from '@/lib/db/schema';
 
@@ -93,7 +93,9 @@ export default function SettingsPage() {
   const [passwordState, passwordAction, isPasswordPending] = useActionState<ActionState, FormData>(updatePassword, { error: '' });
   const [deleteState, deleteAction, isDeletePending] = useActionState<ActionState, FormData>(deleteAccount, { error: '' });
   const [inviteState, inviteAction, isInvitePending] = useActionState<ActionState, FormData>(inviteTeamMember, { error: '' });
+  const [removeState, removeAction, isRemovePending] = useActionState<ActionState, FormData>(removeTeamMember, { error: '' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'owner' | 'member'>('member');
 
@@ -366,16 +368,33 @@ export default function SettingsPage() {
                 <div className="divide-y">
                   {teamData.teamMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between py-3">
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{member.user.email}</p>
                         <p className="text-xs text-gray-500">
                           Joined {new Date(member.joinedAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                        <Shield className="h-3 w-3" />
-                        {member.role}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                          <Shield className="h-3 w-3" />
+                          {member.role}
+                        </span>
+                        <form action={removeAction} className="inline">
+                          <input type="hidden" name="memberId" value={member.id} />
+                          <button
+                            type="submit"
+                            disabled={isRemovePending || removingMemberId === member.id}
+                            className="p-1.5 hover:bg-red-50 rounded text-gray-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Remove member"
+                          >
+                            {isRemovePending && removingMemberId === member.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <UserMinus className="h-4 w-4" />
+                            )}
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   ))}
                 </div>
