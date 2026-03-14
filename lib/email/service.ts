@@ -20,7 +20,7 @@ async function sendEmail(options: EmailOptions) {
       to: options.to,
       subject: options.subject,
       html: options.html,
-      reply_to: REPLY_TO_EMAIL,
+      replyTo: REPLY_TO_EMAIL,
     });
     if (response.error) {
       console.error('Resend API Error:', response.error);
