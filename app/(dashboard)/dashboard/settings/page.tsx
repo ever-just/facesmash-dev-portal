@@ -90,8 +90,8 @@ export default function SettingsPage() {
   const { data: faceCardStatus } = useSWR('/api/auth/facecard/register', fetcher);
 
   // Form states
-  const [passwordState, passwordAction, isPasswordPending] = useActionState(updatePassword, {});
-  const [deleteState, deleteAction, isDeletePending] = useActionState(deleteAccount, {});
+  const [passwordState, passwordAction, isPasswordPending] = useActionState(updatePassword, { error: '' });
+  const [deleteState, deleteAction, isDeletePending] = useActionState(deleteAccount, { error: '' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const { data: activityLogsData } = useSWR<any[]>('/api/activity', fetcher);
