@@ -8,14 +8,14 @@ npm install resend
 ```
 
 ### 2. API Key Configuration
-API Key is already configured in `lib/email/service.ts`:
+Set the `RESEND_API_KEY` environment variable (in `.env.local` for local dev, or in Netlify dashboard for production):
 ```
-re_78sX6QZx_2PpYuF6ULzkuaueHxdQzf56P
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### 3. Sender Email
-All emails are sent from: `noreply@developers.facesmash.app`
-Reply-to: `support@facesmash.app`
+All emails are sent from: `face@everjust.co`
+Reply-to: `support@everjust.co`
 
 ---
 
@@ -195,7 +195,7 @@ https://resend.com/emails
 
 #### Email Not Delivered
 - ✅ Check recipient email is correct
-- ✅ Verify domain is verified (noreply@developers.facesmash.app)
+- ✅ Verify domain is verified (everjust.co)
 - ✅ Check Resend dashboard for errors
 
 #### High Bounce Rate
