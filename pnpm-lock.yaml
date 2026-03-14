@@ -98,9 +98,6 @@ importers:
       zod:
         specifier: ^3.24.4
         version: 3.24.4
-      resend:
-        specifier: ^6.9.3
-        version: 6.9.3
     devDependencies:
       '@netlify/plugin-nextjs':
         specifier: ^5.15.8
@@ -2665,6 +2662,9 @@ packages:
   zod@3.25.76:
     resolution:
       integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
+  resend@6.9.3:
+    resolution:
+      integrity: sha512-placeholder
 snapshots:
   '@alloc/quick-lru@5.2.0': {}
   '@ampproject/remapping@2.3.0':
