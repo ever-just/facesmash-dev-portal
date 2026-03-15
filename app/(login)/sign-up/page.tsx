@@ -1,10 +1,11 @@
 'use client';
 
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SignUpForm from '../SignUpForm';
 
-export default function SignUpPage() {
+function SignUpView() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
   const priceId = searchParams.get('priceId');
@@ -38,5 +39,13 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-[#07080A]" />}>
+      <SignUpView />
+    </Suspense>
   );
 }
