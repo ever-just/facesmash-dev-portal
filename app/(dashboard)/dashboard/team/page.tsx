@@ -22,29 +22,23 @@ import {
   Copy,
   Check,
   Mail,
+  KeyRound,
+  Activity as ActivityIcon,
+  ScanFace,
+  RefreshCcw,
+  Ban,
 } from 'lucide-react';
-import { inviteTeamMember, removeTeamMember } from '@/app/(login)/actions';
+import {
+  inviteTeamMember,
+  removeTeamMember,
+  resendInvitation,
+  revokeInvitation,
+} from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import useSWR from 'swr';
+import type { TeamDataWithMembers } from '@/lib/db/schema';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-type TeamData = {
-  id: number;
-  name: string;
-  planName: string | null;
-  subscriptionStatus: string | null;
-  teamMembers: {
-    id: number;
-    role: string;
-    joinedAt: string;
-    user: {
-      id: number;
-      name: string | null;
-      email: string;
-    };
-  }[];
-};
 
 type CurrentUser = {
   id: number;
@@ -66,18 +60,21 @@ const roleBadgeStyles: Record<string, string> = {
 };
 
 export default function TeamPage() {
-  const { data: team, mutate } = useSWR<TeamData>('/api/team', fetcher);
+  const { data: team, mutate } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
   const { data: currentUser } = useSWR<CurrentUser>('/api/user', fetcher);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
-  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedInviteId, setCopiedInviteId] = useState<number | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
+  const [revokingId, setRevokingId] = useState<number | null>(null);
+  const [flash, setFlash] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Determine current user's role in the team
   const myMembership = team?.teamMembers?.find(
     (m) => m.user.id === currentUser?.id
   );
-  const myRole = myMembership?.role || 'member';
+  const myRole = team?.currentUserRole || myMembership?.role || 'member';
   const isOwnerOrAdmin = myRole === 'owner' || myRole === 'admin';
 
   const [inviteState, inviteAction, isInviting] = useActionState<ActionState, FormData>(
@@ -101,9 +98,40 @@ export default function TeamPage() {
     mutate();
   };
 
-  const copyInviteInfo = (email: string) => {
-    const url = `${window.location.origin}/sign-up`;
-    navigator.clipboard.writeText(`You've been invited to join ${team?.name} on FaceSmash. Sign up here: ${url}`);
+  const handleResend = async (invitationId: number) => {
+    setResendingId(invitationId);
+    const formData = new FormData();
+    formData.append('invitationId', String(invitationId));
+    const result = await resendInvitation({}, formData);
+    setResendingId(null);
+    if (result?.error) {
+      setFlash({ type: 'error', message: result.error });
+    } else {
+      setFlash({ type: 'success', message: 'Invitation email resent.' });
+      mutate();
+    }
+  };
+
+  const handleRevoke = async (invitationId: number) => {
+    if (!confirm('Revoke this invitation? The invitee will no longer be able to join.')) return;
+    setRevokingId(invitationId);
+    const formData = new FormData();
+    formData.append('invitationId', String(invitationId));
+    const result = await revokeInvitation({}, formData);
+    setRevokingId(null);
+    if (result?.error) {
+      setFlash({ type: 'error', message: result.error });
+    } else {
+      setFlash({ type: 'success', message: 'Invitation revoked.' });
+      mutate();
+    }
+  };
+
+  const copyInviteLink = (invitationId: number, email: string) => {
+    const url = `${window.location.origin}/invitations/accept?id=${invitationId}&email=${encodeURIComponent(email)}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInviteId(invitationId);
+    setTimeout(() => setCopiedInviteId(null), 2000);
   };
 
   if (!team) {
@@ -118,20 +146,89 @@ export default function TeamPage() {
 
   return (
     <section className="flex-1 p-4 lg:p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-lg lg:text-2xl font-medium text-gray-900">Team</h1>
-          <p className="text-sm text-gray-500 mt-1">{team.name}</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Team</p>
+          <h1 className="text-lg lg:text-2xl font-semibold text-gray-900">{team.name}</h1>
+          <p className="text-sm text-gray-500">
+            {myRole.charAt(0).toUpperCase() + myRole.slice(1)} access &middot; {team.planName || 'Free'} plan
+          </p>
         </div>
         {isOwnerOrAdmin && (
-          <Button
-            onClick={() => setShowInvite(!showInvite)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite Member
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={() => setShowInvite(!showInvite)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Member
+            </Button>
+          </div>
         )}
+      </div>
+
+      {flash && (
+        <div
+          className={`mb-6 rounded-lg border px-4 py-3 text-sm flex items-center gap-2 ${
+            flash.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {flash.type === 'success' ? <Check className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+          <span>{flash.message}</span>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+        <Card>
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Users className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Members</p>
+              <p className="text-lg font-semibold text-gray-900">{team.teamMembers.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <Mail className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Pending invites</p>
+              <p className="text-lg font-semibold text-gray-900">{team.pendingInvitations?.length || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <KeyRound className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">My API keys</p>
+              <p className="text-lg font-semibold text-gray-900">{myMembership?.insights?.apiKeyCount ?? 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+              <ActivityIcon className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Last activity</p>
+              <p className="text-sm font-medium text-gray-900">
+                {myMembership?.insights?.lastActivityAt
+                  ? new Date(myMembership.insights.lastActivityAt).toLocaleString()
+                  : 'No activity recorded'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Invite Form */}
@@ -238,7 +335,7 @@ export default function TeamPage() {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {team.teamMembers
+            {(isOwnerOrAdmin ? team.teamMembers : team.teamMembers.filter((m) => m.user.id === currentUser?.id))
               ?.sort((a, b) => {
                 const order: Record<string, number> = { owner: 0, admin: 1, member: 2 };
                 return (order[a.role] ?? 3) - (order[b.role] ?? 3);
@@ -268,11 +365,29 @@ export default function TeamPage() {
                         <p className="text-xs text-gray-400 truncate">{member.user.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0 text-right">
                       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${roleBadgeStyles[member.role] || roleBadgeStyles.member}`}>
                         {roleIcons[member.role] || roleIcons.member}
                         {member.role}
                       </span>
+                      {isOwnerOrAdmin && member.insights && (
+                        <div className="flex flex-wrap justify-end gap-2 text-[11px] text-gray-500">
+                          <span className="inline-flex items-center gap-1">
+                            <KeyRound className="h-3 w-3" />
+                            {member.insights.apiKeyCount} keys
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <ActivityIcon className="h-3 w-3" />
+                            {member.insights.lastActivityAt
+                              ? new Date(member.insights.lastActivityAt).toLocaleDateString()
+                              : 'No activity'}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 ${member.insights.hasFaceCard ? 'text-emerald-600' : ''}`}>
+                            <ScanFace className="h-3 w-3" />
+                            {member.insights.hasFaceCard ? 'FaceCard' : 'FaceCard pending'}
+                          </span>
+                        </div>
+                      )}
                       {canRemove && (
                         <Button
                           variant="ghost"
@@ -290,6 +405,86 @@ export default function TeamPage() {
           </div>
         </CardContent>
       </Card>
+
+      {isOwnerOrAdmin && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Mail className="h-4 w-4 text-amber-500" />
+              Pending Invitations
+            </CardTitle>
+            <CardDescription>Track, resend, or revoke invitations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {team.pendingInvitations && team.pendingInvitations.length > 0 ? (
+              <div className="space-y-4">
+                {team.pendingInvitations.map((invite) => (
+                  <div key={invite.id} className="border border-gray-100 rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900">{invite.email}</p>
+                      <p className="text-xs text-gray-500">
+                        Invited {invite.role} • {new Date(invite.invitedAt).toLocaleDateString()} by{' '}
+                        {invite.invitedBy?.name || invite.invitedBy?.email || 'System'}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => copyInviteLink(invite.id, invite.email)}
+                      >
+                        {copiedInviteId === invite.id ? (
+                          <>
+                            <Check className="h-3 w-3" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" /> Copy link
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        disabled={resendingId === invite.id}
+                        onClick={() => handleResend(invite.id)}
+                      >
+                        {resendingId === invite.id ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" /> Resending
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCcw className="h-3 w-3" /> Resend
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600"
+                        disabled={revokingId === invite.id}
+                        onClick={() => handleRevoke(invite.id)}
+                      >
+                        {revokingId === invite.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Ban className="h-3 w-3" />
+                        )}
+                        <span className="sr-only">Revoke</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">No pending invitations.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Role Permissions Info */}
       <Card className="mt-6">

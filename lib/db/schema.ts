@@ -171,10 +171,23 @@ export type DeveloperApp = typeof developerApps.$inferSelect;
 export type NewDeveloperApp = typeof developerApps.$inferInsert;
 export type AppUserRole = typeof appUserRoles.$inferSelect;
 export type NewAppUserRole = typeof appUserRoles.$inferInsert;
+export type TeamMemberInsights = {
+  apiKeyCount: number;
+  lastActivityAt: string | null;
+  hasFaceCard: boolean;
+};
+
+export type TeamInvitationSummary = Pick<Invitation, 'id' | 'email' | 'role' | 'status' | 'invitedAt'> & {
+  invitedBy?: Pick<User, 'id' | 'name' | 'email'> | null;
+};
+
 export type TeamDataWithMembers = Team & {
+  currentUserRole?: 'owner' | 'admin' | 'member';
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
+    insights?: TeamMemberInsights;
   })[];
+  pendingInvitations?: TeamInvitationSummary[];
 };
 
 export enum ActivityType {

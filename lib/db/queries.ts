@@ -1,8 +1,20 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import {
+  activityLogs,
+  teamMembers,
+  teams,
+  users,
+  invitations,
+  TeamDataWithMembers,
+} from './schema';
+import { listApiKeys } from '@/lib/keys/actions';
+import { checkFaceCardStatus } from '@/lib/facesmash-api/client';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import type { UnkeyKeyMeta } from '@/lib/unkey';
+
+const DEVPORTAL_APP_ID = process.env.DEVPORTAL_APP_ID || 'devportal';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -112,13 +124,13 @@ export async function getUserTeamRole(userId: number) {
   return result[0] || null;
 }
 
-export async function getTeamForUser() {
+export async function getTeamForUser(): Promise<TeamDataWithMembers | null> {
   const user = await getUser();
   if (!user) {
     return null;
   }
 
-  const result = await db.query.teamMembers.findFirst({
+  const membership = await db.query.teamMembers.findFirst({
     where: eq(teamMembers.userId, user.id),
     with: {
       team: {
@@ -129,15 +141,120 @@ export async function getTeamForUser() {
                 columns: {
                   id: true,
                   name: true,
-                  email: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
-  return result?.team || null;
+  if (!membership?.team || !membership.teamId) {
+    return null;
+  }
+
+  const teamId = membership.teamId;
+  const baseTeam = membership.team;
+
+  const [pendingInviteRows, apiKeys, recentActivities] = await Promise.all([
+    db
+      .select({
+        id: invitations.id,
+        email: invitations.email,
+        role: invitations.role,
+        status: invitations.status,
+        invitedAt: invitations.invitedAt,
+        invitedById: users.id,
+        invitedByName: users.name,
+        invitedByEmail: users.email,
+      })
+      .from(invitations)
+      .leftJoin(users, eq(invitations.invitedBy, users.id))
+      .where(and(eq(invitations.teamId, teamId), eq(invitations.status, 'pending')))
+      .orderBy(desc(invitations.invitedAt)),
+    listApiKeys(teamId),
+    db
+      .select({
+        userId: activityLogs.userId,
+        timestamp: activityLogs.timestamp,
+      })
+      .from(activityLogs)
+      .where(eq(activityLogs.teamId, teamId))
+      .orderBy(desc(activityLogs.timestamp))
+      .limit(100),
+  ]);
+
+  const faceCardStatuses = await Promise.all(
+    baseTeam.teamMembers.map(async (member) => {
+      try {
+        const res = await checkFaceCardStatus(member.user.email, DEVPORTAL_APP_ID);
+        return {
+          userId: member.userId,
+          hasFaceCard: res.ok && !!res.data?.registered && !!res.data?.verified,
+        };
+      } catch (error) {
+        console.error('[facecard] status check failed:', error);
+        return { userId: member.userId, hasFaceCard: false };
+      }
+    })
+  );
+
+  const pendingInvitations = pendingInviteRows.map((invite) => ({
+    id: invite.id,
+    email: invite.email,
+    role: invite.role,
+    status: invite.status,
+    invitedAt: invite.invitedAt,
+    invitedBy: invite.invitedById
+      ? {
+          id: invite.invitedById,
+          name: invite.invitedByName,
+          email: invite.invitedByEmail ?? '',
+        }
+      : null,
+  }));
+
+  const apiKeyCounts = new Map<number, number>();
+  for (const key of apiKeys) {
+    const meta = key.meta as UnkeyKeyMeta | undefined;
+    if (meta?.userId) {
+      apiKeyCounts.set(meta.userId, (apiKeyCounts.get(meta.userId) ?? 0) + 1);
+    }
+  }
+
+  const lastActivityMap = new Map<number, string | null>();
+  for (const activity of recentActivities) {
+    if (!activity.userId || lastActivityMap.has(activity.userId)) {
+      continue;
+    }
+    lastActivityMap.set(
+      activity.userId,
+      activity.timestamp ? activity.timestamp.toISOString() : null
+    );
+  }
+
+  const faceCardMap = new Map<number, boolean>();
+  for (const status of faceCardStatuses) {
+    faceCardMap.set(status.userId, status.hasFaceCard);
+  }
+
+  const teamMembersWithInsights = baseTeam.teamMembers.map((member) => ({
+    ...member,
+    insights: {
+      apiKeyCount: apiKeyCounts.get(member.userId) ?? 0,
+      lastActivityAt: lastActivityMap.get(member.userId) ?? null,
+      hasFaceCard: faceCardMap.get(member.userId) ?? false,
+    },
+  }));
+
+  const teamData: TeamDataWithMembers = {
+    ...baseTeam,
+    currentUserRole: (membership.role as 'owner' | 'admin' | 'member') || 'member',
+    teamMembers: teamMembersWithInsights,
+    pendingInvitations,
+  };
+
+  return teamData;
 }

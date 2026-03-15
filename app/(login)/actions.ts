@@ -440,6 +440,10 @@ const inviteTeamMemberSchema = z.object({
   role: z.enum(['member', 'admin', 'owner'])
 });
 
+const invitationActionSchema = z.object({
+  invitationId: z.coerce.number()
+});
+
 export const inviteTeamMember = validatedActionWithRole(
   inviteTeamMemberSchema,
   'admin',
@@ -542,6 +546,95 @@ export const inviteTeamMember = validatedActionWithRole(
     ).catch((err) => console.error('Failed to send invite email:', err));
 
     return { success: 'Invitation sent successfully' };
+  }
+);
+
+export const resendInvitation = validatedActionWithRole(
+  invitationActionSchema,
+  'admin',
+  async (data, _, user, teamRole) => {
+    const { invitationId } = data;
+    const userWithTeam = await getUserWithTeam(user.id);
+
+    if (!userWithTeam?.teamId) {
+      return { error: 'User is not part of a team' };
+    }
+
+    const [invite] = await db
+      .select({
+        id: invitations.id,
+        email: invitations.email,
+        role: invitations.role,
+        status: invitations.status,
+        teamId: invitations.teamId,
+      })
+      .from(invitations)
+      .where(and(eq(invitations.id, invitationId), eq(invitations.teamId, userWithTeam.teamId)))
+      .limit(1);
+
+    if (!invite || invite.status !== 'pending') {
+      return { error: 'Invitation not found or already processed.' };
+    }
+
+    if ((invite.role === 'admin' || invite.role === 'owner') && teamRole !== 'owner') {
+      return { error: 'Only the team owner can resend admin/owner invitations.' };
+    }
+
+    const [teamRow] = await db
+      .select({ name: teams.name })
+      .from(teams)
+      .where(eq(teams.id, userWithTeam.teamId))
+      .limit(1);
+
+    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://developers.facesmash.app'}/invitations/accept?id=${invite.id}&email=${encodeURIComponent(invite.email)}`;
+
+    await db
+      .update(invitations)
+      .set({ invitedAt: sql`NOW()` })
+      .where(eq(invitations.id, invite.id));
+
+    sendTeamInviteEmail(
+      invite.email,
+      user.name || user.email,
+      teamRow?.name || 'your team',
+      inviteLink,
+      invite.role
+    ).catch((err) => console.error('Failed to resend invite email:', err));
+
+    revalidatePath('/dashboard/team');
+    return { success: 'Invitation email resent.' };
+  }
+);
+
+export const revokeInvitation = validatedActionWithRole(
+  invitationActionSchema,
+  'admin',
+  async (data, _, user) => {
+    const { invitationId } = data;
+    const userWithTeam = await getUserWithTeam(user.id);
+
+    if (!userWithTeam?.teamId) {
+      return { error: 'User is not part of a team' };
+    }
+
+    const updated = await db
+      .update(invitations)
+      .set({ status: 'revoked' })
+      .where(
+        and(
+          eq(invitations.id, invitationId),
+          eq(invitations.teamId, userWithTeam.teamId),
+          eq(invitations.status, 'pending')
+        )
+      )
+      .returning({ id: invitations.id });
+
+    if (updated.length === 0) {
+      return { error: 'Invitation not found or already processed.' };
+    }
+
+    revalidatePath('/dashboard/team');
+    return { success: 'Invitation revoked.' };
   }
 );
 
