@@ -34,6 +34,7 @@ import useSWR from 'swr';
 import { updatePassword, deleteAccount, inviteTeamMember, removeTeamMember } from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import type { TeamDataWithMembers, User } from '@/lib/db/schema';
+import { TeamManagement } from '@/app/(dashboard)/components/team-management';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -95,9 +96,6 @@ export default function SettingsPage() {
   const [inviteState, inviteAction, isInvitePending] = useActionState<ActionState, FormData>(inviteTeamMember, { error: '' });
   const [removeState, removeAction, isRemovePending] = useActionState<ActionState, FormData>(removeTeamMember, { error: '' });
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'owner' | 'member'>('member');
 
   const { data: activityLogsData } = useSWR<any[]>('/api/activity', fetcher);
   const activityLogs = activityLogsData ?? [];
@@ -357,132 +355,7 @@ export default function SettingsPage() {
 
       {/* Team Tab */}
       {activeTab === 'team' && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Manage your team and member roles</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {teamData?.teamMembers && teamData.teamMembers.length > 0 ? (
-                <div className="divide-y">
-                  {teamData.teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between py-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{member.user.email}</p>
-                        <p className="text-xs text-gray-500">
-                          Joined {new Date(member.joinedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                          <Shield className="h-3 w-3" />
-                          {member.role}
-                        </span>
-                        <form action={removeAction} className="inline">
-                          <input type="hidden" name="memberId" value={member.id} />
-                          <button
-                            type="submit"
-                            disabled={isRemovePending || removingMemberId === member.id}
-                            className="p-1.5 hover:bg-red-50 rounded text-gray-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            title="Remove member"
-                          >
-                            {isRemovePending && removingMemberId === member.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <UserMinus className="h-4 w-4" />
-                            )}
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 italic py-4 text-center">No team members</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Invite Team Member
-              </CardTitle>
-              <CardDescription>Add a new member to your team</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={inviteAction} className="space-y-4">
-                {inviteState?.error && (
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                    <p className="text-sm text-red-700">{inviteState.error}</p>
-                  </div>
-                )}
-                {inviteState?.success && (
-                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                    <p className="text-sm text-emerald-700">Invitation sent successfully!</p>
-                  </div>
-                )}
-                <div>
-                  <Label htmlFor="invite-email" className="mb-2">Email Address</Label>
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    name="email"
-                    placeholder="user@example.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="invite-role" className="mb-2">Role</Label>
-                  <select
-                    id="invite-role"
-                    name="role"
-                    defaultValue="member"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="member">Member</option>
-                    <option value="owner">Owner</option>
-                  </select>
-                </div>
-                <Button
-                  type="submit"
-                  disabled={isInvitePending}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {isInvitePending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending invitation...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Send Invitation
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Team Name</p>
-                <p className="text-sm font-medium text-gray-900">{teamData?.name || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Current Plan</p>
-                <p className="text-sm font-medium text-gray-900">{teamData?.planName || 'Free'}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <TeamManagement variant="embedded" />
       )}
 
       {/* Billing Tab */}
