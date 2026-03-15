@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,20 +10,22 @@ import { Loader2, AlertCircle, CheckCircle2, Users } from 'lucide-react';
 import { acceptInvitation } from '@/app/(login)/actions';
 import type { ActionState } from '@/lib/auth/middleware';
 
-export default function AcceptInvitationForm() {
+type AcceptInvitationFormProps = {
+  invitationId?: string | null;
+  email?: string | null;
+};
+
+export default function AcceptInvitationForm({ invitationId, email }: AcceptInvitationFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     acceptInvitation,
     { error: '' }
   );
 
-  const id = searchParams.get('id');
-  const email = searchParams.get('email');
   const [showDecline, setShowDecline] = useState(false);
 
   // Validate params
-  if (!id || !email) {
+  if (!invitationId || !email) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <Card className="w-full max-w-md">
@@ -99,13 +101,13 @@ export default function AcceptInvitationForm() {
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Link
-                      href={`/sign-in?redirect=${encodeURIComponent(`/invitations/accept?id=${id}&email=${encodeURIComponent(email)}`)}`}
+                      href={`/sign-in?redirect=${encodeURIComponent(`/invitations/accept?id=${invitationId}&email=${encodeURIComponent(email)}`)}`}
                       className="flex-1 text-center py-2 rounded-md border border-emerald-200 text-emerald-700 font-medium hover:bg-emerald-50"
                     >
                       Sign in
                     </Link>
                     <Link
-                      href={`/sign-up?inviteId=${id}&email=${encodeURIComponent(email)}`}
+                      href={`/sign-up?inviteId=${invitationId}&email=${encodeURIComponent(email)}`}
                       className="flex-1 text-center py-2 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700"
                     >
                       Create account
@@ -123,7 +125,7 @@ export default function AcceptInvitationForm() {
 
           {!showDecline ? (
             <form action={formAction} className="space-y-4">
-              <input type="hidden" name="invitationId" value={id} />
+              <input type="hidden" name="invitationId" value={invitationId} />
               <input type="hidden" name="email" value={email} />
 
               <Button
