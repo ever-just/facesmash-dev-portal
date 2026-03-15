@@ -5,6 +5,16 @@
 [build.environment]
   NODE_VERSION = "20"
   PNPM_VERSION = "10.32.1"
+  POSTGRES_URL = "postgresql://devportal:DevPortalPg2026x@167.172.244.201:5432/facesmash_devportal?sslmode=require"
+
+[context.production.environment]
+  POSTGRES_URL = "postgresql://devportal:DevPortalPg2026x@167.172.244.201:5432/facesmash_devportal?sslmode=require"
+
+[context.deploy-preview.environment]
+  POSTGRES_URL = "postgresql://devportal:DevPortalPg2026x@167.172.244.201:5432/facesmash_devportal?sslmode=require"
+
+[context.branch-deploy.environment]
+  POSTGRES_URL = "postgresql://devportal:DevPortalPg2026x@167.172.244.201:5432/facesmash_devportal?sslmode=require"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

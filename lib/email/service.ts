@@ -10,7 +10,23 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  text?: string;
   tags?: Record<string, string>;
+}
+
+function normalizeHtmlForText(html: string): string {
+  return html
+    .replace(/<\/(p|div|h[1-6])>/gi, '\n\n')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<li>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 async function sendEmail(options: EmailOptions) {
@@ -20,6 +36,7 @@ async function sendEmail(options: EmailOptions) {
       to: options.to,
       subject: options.subject,
       html: options.html,
+      text: options.text ?? normalizeHtmlForText(options.html),
       replyTo: REPLY_TO_EMAIL,
     });
     if (response.error) {

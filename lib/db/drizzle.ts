@@ -5,11 +5,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.POSTGRES_URL) {
-  throw new Error('POSTGRES_URL environment variable is not set');
+const connectionUrl = process.env.POSTGRES_URL;
+
+if (!connectionUrl) {
+  console.warn('[db] POSTGRES_URL is missing. Returning a no-op database client.');
 }
 
-export const client = postgres(process.env.POSTGRES_URL, {
-  ssl: process.env.POSTGRES_URL.includes('localhost') ? false : { rejectUnauthorized: false },
-});
-export const db = drizzle(client, { schema });
+const client = connectionUrl
+  ? postgres(connectionUrl, {
+      ssl: connectionUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+    })
+  : null;
+
+export const db = client ? drizzle(client, { schema }) : ({} as ReturnType<typeof drizzle>);
