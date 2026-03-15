@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -87,8 +88,31 @@ export default function AcceptInvitationForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           {state?.error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-              <p className="text-sm text-red-700">{state.error}</p>
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-sm text-red-700">{state.error}</p>
+              </div>
+              {state.error.includes('Please sign in') && (
+                <div className="p-4 rounded-lg border border-gray-200 bg-white">
+                  <p className="text-sm text-gray-700 mb-3">
+                    You can sign in with your existing account or create a new one using this invitation.
+                  </p>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Link
+                      href={`/sign-in?redirect=${encodeURIComponent(`/invitations/accept?id=${id}&email=${encodeURIComponent(email)}`)}`}
+                      className="flex-1 text-center py-2 rounded-md border border-emerald-200 text-emerald-700 font-medium hover:bg-emerald-50"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      href={`/sign-up?inviteId=${id}&email=${encodeURIComponent(email)}`}
+                      className="flex-1 text-center py-2 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700"
+                    >
+                      Create account
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
