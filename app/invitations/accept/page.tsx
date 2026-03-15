@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import AcceptInvitationForm from './accept-form';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,7 @@ type AcceptInvitationPageProps = {
 };
 
 export default function AcceptInvitationPage({ searchParams }: AcceptInvitationPageProps) {
+  noStore();
   const invitationId = searchParams?.id ?? null;
   const email = searchParams?.email ?? null;
 
