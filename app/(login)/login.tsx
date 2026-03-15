@@ -13,10 +13,9 @@ import { Loader2, ScanFace, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { ActionState } from '@/lib/auth/middleware';
 import dynamic from 'next/dynamic';
 
-// Lazy load the SignUpForm to reduce initial bundle
 const SignUpForm = dynamic(() => import('./SignUpForm'), {
-  loading: () => <div className="h-96" />, // Placeholder during load
-  ssr: false // Don't SSR sign-up form on login page
+  loading: () => <div className="h-96" />,
+  ssr: false,
 });
 
 // Pinned model URL
