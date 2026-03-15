@@ -550,10 +550,17 @@ const acceptInvitationSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
-export const acceptInvitation = validatedActionWithUser(
+export const acceptInvitation = validatedAction(
   acceptInvitationSchema,
-  async (data, _, user) => {
+  async (data) => {
     const { invitationId, email } = data;
+
+    const user = await getUser();
+    if (!user) {
+      return {
+        error: 'Please sign in before accepting the invitation.',
+      };
+    }
 
     // Verify invitation exists and matches request
     const [invitation] = await db
