@@ -1,3 +1,10 @@
+> ## ⛔️ ARCHIVED — not maintained
+>
+> This repository is read-only. It is kept for reference and history.
+> FaceSmash developer portal. Discontinued; developers.facesmash.app no longer resolves.
+>
+> Archived 2026-09-04.
+
 # FaceSmash Developer Portal
 
 Developer-facing dashboard for managing API keys, applications, billing, and usage analytics. This is where developers sign up, authenticate with face login, and get credentials to integrate FaceSmash into their apps.
